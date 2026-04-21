@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>App Config · PromptVault Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="./css/style.css"/>
+</head>
+<body class="bg-gray-50">
+
+<div id="pv-loader"><div class="text-center">
+  <div class="page-spinner mx-auto mb-3"></div>
+  <p class="text-white/70 text-sm">Checking session…</p>
+</div></div>
+
+<div id="pv-body" class="invisible">
+  <div class="mobile-topbar lg:hidden">
+    <button class="btn-hamburger p-2 -ml-2 rounded-lg hover:bg-gray-100 text-gray-600">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+    </button>
+    <span class="font-bold text-gray-900 text-sm">App Config</span>
+    <button id="btn-save-cfg-mob" class="btn-pr btn-sm">Save</button>
+  </div>
+
+  <div class="flex min-h-screen lg:min-h-0">
+    <div id="sidebar-slot"></div>
+    <main class="flex-1 flex flex-col min-w-0">
+      <header class="hidden lg:flex bg-white border-b border-gray-100 px-8 py-4 items-center justify-between sticky top-0 z-10">
+        <div>
+          <h1 class="text-xl font-bold text-gray-900">App Config</h1>
+          <p class="text-xs text-gray-400 mt-0.5">Control app text, feature flags, and AdMob settings</p>
+        </div>
+        <div class="flex gap-3">
+          <button id="btn-reset" class="btn-sec btn-sm">↺ Reset</button>
+          <button id="btn-save-cfg" class="btn-pr">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>Save Settings
+          </button>
+        </div>
+      </header>
+
+      <!-- Loading -->
+      <div id="cfg-loading" class="flex-1 flex items-center justify-center p-8">
+        <div class="text-center">
+          <div class="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-3"></div>
+          <p class="text-gray-400 text-sm">Loading configuration…</p>
+        </div>
+      </div>
+
+      <form id="cfg-form" class="hidden p-4 sm:p-5 lg:p-8 space-y-5 max-w-4xl" novalidate>
+
+        <!-- ── App Info ── -->
+        <div class="card p-5">
+          <h2 class="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm sm:text-base">
+            <span>📱</span> App Information
+          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div><label class="lbl">App Name</label><input id="cfg-appName" class="inp" placeholder="PromptVault"/></div>
+            <div><label class="lbl">App Version</label><input id="cfg-appVersion" class="inp" placeholder="1.0.0"/></div>
+            <div class="sm:col-span-2"><label class="lbl">Tagline</label><input id="cfg-appTagline" class="inp" placeholder="Discover the Best AI Prompts"/></div>
+            <div><label class="lbl">Built By</label><input id="cfg-builtBy" class="inp" placeholder="ENOY SOFT"/></div>
+            <div><label class="lbl">Contact Email</label><input id="cfg-contactEmail" type="email" class="inp" placeholder="enoysoft@gmail.com"/></div>
+          </div>
+        </div>
+
+        <!-- ── UI Text ── -->
+        <div class="card p-5">
+          <h2 class="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm sm:text-base">
+            <span>✏️</span> UI Text Labels
+          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div><label class="lbl">Home Heading</label><input id="cfg-homeHeading" class="inp" placeholder="PromptVault"/></div>
+            <div><label class="lbl">Search Placeholder</label><input id="cfg-searchPlaceholder" class="inp" placeholder="Search prompts…"/></div>
+            <div><label class="lbl">Trending Label</label><input id="cfg-homeTrendingLabel" class="inp" placeholder="🔥 Trending"/></div>
+            <div><label class="lbl">Fresh Picks Label</label><input id="cfg-homeFreshLabel" class="inp" placeholder="🕐 Fresh Picks"/></div>
+            <div class="sm:col-span-2"><label class="lbl">Unlock Message</label>
+              <input id="cfg-unlockMessage" class="inp" placeholder="Watch a short ad to unlock this premium prompt"/></div>
+          </div>
+        </div>
+
+        <!-- ── URLs ── -->
+        <div class="card p-5">
+          <h2 class="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm sm:text-base">
+            <span>🔗</span> App URLs
+          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div><label class="lbl">Privacy Policy URL</label><input id="cfg-privacyPolicyUrl" type="url" class="inp" placeholder="https://…"/></div>
+            <div><label class="lbl">Terms of Service URL</label><input id="cfg-termsUrl" type="url" class="inp" placeholder="https://…"/></div>
+            <div class="sm:col-span-2"><label class="lbl">Play Store URL</label>
+              <input id="cfg-playStoreUrl" type="url" class="inp" placeholder="https://play.google.com/store/apps/details?id=…"/></div>
+          </div>
+        </div>
+
+        <!-- ── AdMob ── -->
+        <div class="card p-5">
+          <h2 class="font-semibold text-gray-900 mb-1 flex items-center gap-2 text-sm sm:text-base">
+            <span>💰</span> AdMob IDs
+            <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">Also update admob_ids.xml in Android</span>
+          </h2>
+          <p class="text-xs text-gray-500 mb-4">Stored here for reference. The Android app reads from admob_ids.xml directly.</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="sm:col-span-2">
+              <label class="lbl">AdMob App ID</label>
+              <input id="cfg-admobAppId" class="inp font-mono text-xs" placeholder="ca-app-pub-XXXX~XXXX"/>
+              <p class="text-xs text-gray-400 mt-1">Used in AndroidManifest.xml — must be set before publishing</p>
+            </div>
+            <div><label class="lbl">Banner Ad Unit ID</label><input id="cfg-admobBannerId" class="inp font-mono text-xs" placeholder="ca-app-pub-XXXX/XXXX"/></div>
+            <div><label class="lbl">Interstitial Ad Unit ID</label><input id="cfg-admobInterstitialId" class="inp font-mono text-xs" placeholder="ca-app-pub-XXXX/XXXX"/></div>
+            <div><label class="lbl">Rewarded Ad Unit ID</label><input id="cfg-admobRewardedId" class="inp font-mono text-xs" placeholder="ca-app-pub-XXXX/XXXX"/></div>
+            <div><label class="lbl">Native Ad Unit ID</label><input id="cfg-admobNativeId" class="inp font-mono text-xs" placeholder="ca-app-pub-XXXX/XXXX"/></div>
+            <div class="sm:col-span-2"><label class="lbl">App Open Ad Unit ID</label><input id="cfg-admobAppOpenId" class="inp font-mono text-xs" placeholder="ca-app-pub-XXXX/XXXX"/></div>
+          </div>
+        </div>
+
+        <!-- ── Feature Flags ── -->
+        <div class="card p-5">
+          <h2 class="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm sm:text-base">
+            <span>🚦</span> Feature Flags
+          </h2>
+          <div class="space-y-3">
+
+            <!-- Master switches -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label class="flex items-center justify-between p-4 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition">
+                <div>
+                  <p class="text-sm font-medium text-gray-900">📢 Ads Master Switch</p>
+                  <p class="text-xs text-gray-400">Disable all ads globally</p>
+                </div>
+                <div class="toggle-wrap ml-4">
+                  <input id="cfg-adsEnabled" type="checkbox"/>
+                  <div class="toggle-bg"></div>
+                  <div class="toggle-dot"></div>
+                </div>
+              </label>
+              <label class="flex items-center justify-between p-4 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition">
+                <div>
+                  <p class="text-sm font-medium text-gray-900">🔒 Premium Prompts</p>
+                  <p class="text-xs text-gray-400">Enable premium / ad unlock flow</p>
+                </div>
+                <div class="toggle-wrap ml-4">
+                  <input id="cfg-premiumEnabled" type="checkbox"/>
+                  <div class="toggle-bg"></div>
+                  <div class="toggle-dot"></div>
+                </div>
+              </label>
+            </div>
+
+            <!-- Individual ad toggles -->
+            <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider pt-2">Individual Ad Types</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <label class="flex items-center justify-between p-3 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition">
+                <div><p class="text-sm font-medium text-gray-900">Banner</p></div>
+                <div class="toggle-wrap ml-3">
+                  <input id="cfg-showBannerAds" type="checkbox"/>
+                  <div class="toggle-bg"></div><div class="toggle-dot"></div>
+                </div>
+              </label>
+              <label class="flex items-center justify-between p-3 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition">
+                <div><p class="text-sm font-medium text-gray-900">Interstitial</p></div>
+                <div class="toggle-wrap ml-3">
+                  <input id="cfg-showInterstitialAds" type="checkbox"/>
+                  <div class="toggle-bg"></div><div class="toggle-dot"></div>
+                </div>
+              </label>
+              <label class="flex items-center justify-between p-3 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition">
+                <div><p class="text-sm font-medium text-gray-900">Rewarded</p></div>
+                <div class="toggle-wrap ml-3">
+                  <input id="cfg-showRewardedAds" type="checkbox"/>
+                  <div class="toggle-bg"></div><div class="toggle-dot"></div>
+                </div>
+              </label>
+              <label class="flex items-center justify-between p-3 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition">
+                <div><p class="text-sm font-medium text-gray-900">Native</p></div>
+                <div class="toggle-wrap ml-3">
+                  <input id="cfg-showNativeAds" type="checkbox"/>
+                  <div class="toggle-bg"></div><div class="toggle-dot"></div>
+                </div>
+              </label>
+              <label class="flex items-center justify-between p-3 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition">
+                <div><p class="text-sm font-medium text-gray-900">App Open</p></div>
+                <div class="toggle-wrap ml-3">
+                  <input id="cfg-showAppOpenAds" type="checkbox"/>
+                  <div class="toggle-bg"></div><div class="toggle-dot"></div>
+                </div>
+              </label>
+              <label class="flex items-center justify-between p-3 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition">
+                <div><p class="text-sm font-medium text-gray-900">🔥 Hot Badge</p></div>
+                <div class="toggle-wrap ml-3">
+                  <input id="cfg-showHotBadge" type="checkbox"/>
+                  <div class="toggle-bg"></div><div class="toggle-dot"></div>
+                </div>
+              </label>
+            </div>
+
+            <!-- Interstitial timing -->
+            <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider pt-2">Interstitial Timing</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label class="lbl">Cooldown (minutes)</label>
+                <input id="cfg-interstitialCooldownMinutes" type="number" min="1" max="60" class="inp" placeholder="3"/>
+                <p class="text-xs text-gray-400 mt-1">Min gap between interstitials</p>
+              </div>
+              <div>
+                <label class="lbl">Every Nth Detail View</label>
+                <input id="cfg-interstitialEveryNthDetail" type="number" min="1" max="20" class="inp" placeholder="4"/>
+                <p class="text-xs text-gray-400 mt-1">Show after opening N prompts</p>
+              </div>
+              <div>
+                <label class="lbl">Every Nth Tab Switch</label>
+                <input id="cfg-interstitialEveryNthTab" type="number" min="1" max="20" class="inp" placeholder="5"/>
+                <p class="text-xs text-gray-400 mt-1">Show after N bottom nav taps</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── About ── -->
+        <div class="card p-5">
+          <h2 class="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm sm:text-base">
+            <span>ℹ️</span> About Text
+          </h2>
+          <textarea id="cfg-aboutText" class="inp" rows="5"
+            placeholder="PromptVault is your ultimate AI prompt discovery app…"></textarea>
+          <p class="text-xs text-gray-400 mt-1.5">Shown in the About sheet in the Settings screen of the Android app</p>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3 pb-8">
+          <button type="submit" class="btn-pr flex-1 sm:flex-none sm:px-10 py-3 justify-center">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>Save All Settings
+          </button>
+        </div>
+      </form>
+    </main>
+  </div>
+</div>
+
+<script type="module">
+import { guardPage }     from "./js/guard.js";
+import { injectSidebar } from "./js/sidebar.js";
+import { loadConfig, saveConfig, resetConfig } from "./js/config.js";
+
+injectSidebar();
+guardPage(async () => {
+  await loadConfig();
+  document.getElementById("cfg-form").addEventListener("submit", saveConfig);
+  document.getElementById("btn-save-cfg").addEventListener("click", e => { e.preventDefault(); saveConfig(e); });
+  document.getElementById("btn-save-cfg-mob")?.addEventListener("click", e => { e.preventDefault(); saveConfig(e); });
+  document.getElementById("btn-reset").addEventListener("click", resetConfig);
+});
+</script>
+</body>
+</html>

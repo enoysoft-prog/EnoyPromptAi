@@ -1,0 +1,38 @@
+// ============================================================
+// PromptVault — Firestore Security Rules v2
+// PASTE INTO: Firebase Console → Firestore → Rules → Publish
+// ============================================================
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Public content (Android app + website read without auth) ──
+    match /prompts/{id}       { allow read: if true; allow write: if request.auth != null; }
+    match /categories/{id}    { allow read: if true; allow write: if request.auth != null; }
+    match /subcategories/{id} { allow read: if true; allow write: if request.auth != null; }
+    match /tools/{id}         { allow read: if true; allow write: if request.auth != null; }
+    match /config/{id}        { allow read: if true; allow write: if request.auth != null; }
+
+    // ── User accounts ──────────────────────────────────────────────
+    // Any authenticated user can read/write THEIR OWN profile.
+    // Admin panel (any logged-in Firebase Auth user) can read all users.
+    match /users/{userId} {
+      // Users can read & update their own profile
+      allow read:   if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && (
+        request.auth.uid == userId ||
+        // Admin can update any user (status, role changes)
+        // Admin is identified by being a Firebase Auth user — restrict further if needed
+        request.auth != null
+      );
+      // Only admin panel users can delete or read all users
+      allow delete: if request.auth != null;
+      // Allow admin panel to list all users
+      allow list:   if request.auth != null;
+    }
+
+    // Block all other collections
+    match /{document=**} { allow read, write: if false; }
+  }
+}

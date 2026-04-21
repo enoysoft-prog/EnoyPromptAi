@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Users · PromptVault Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="./css/style.css"/>
+</head>
+<body class="bg-gray-50">
+
+<div id="pv-loader"><div class="text-center">
+  <div class="page-spinner mx-auto mb-3"></div>
+  <p class="text-white/70 text-sm">Checking session…</p>
+</div></div>
+
+<div id="pv-body" class="invisible">
+
+  <!-- Mobile top bar -->
+  <div class="mobile-topbar lg:hidden">
+    <button class="btn-hamburger p-2 -ml-2 rounded-lg hover:bg-gray-100 text-gray-600">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+    </button>
+    <span class="font-bold text-gray-900 text-sm">Users</span>
+    <div class="w-8"></div>
+  </div>
+
+  <div class="flex min-h-screen lg:min-h-0">
+    <div id="sidebar-slot"></div>
+    <main class="flex-1 flex flex-col min-w-0">
+
+      <!-- Desktop header -->
+      <header class="hidden lg:flex bg-white border-b border-gray-100 px-8 py-4 items-center justify-between sticky top-0 z-10">
+        <div>
+          <h1 class="text-xl font-bold text-gray-900">Users
+            <span id="usr-count" class="ml-2 text-sm font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">—</span>
+          </h1>
+          <p class="text-xs text-gray-400 mt-0.5">Manage registered user accounts — approve, ban or delete</p>
+        </div>
+        <button onclick="window.location.reload()" class="btn-sec btn-sm">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>Refresh
+        </button>
+      </header>
+
+      <div class="p-4 sm:p-5 lg:p-8 space-y-5">
+
+        <!-- Mobile heading -->
+        <div class="flex items-center justify-between lg:hidden">
+          <h1 class="text-lg font-bold text-gray-900">Users
+            <span id="usr-count-m" class="ml-1.5 text-sm font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">—</span>
+          </h1>
+        </div>
+
+        <!-- Stat cards row -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="stat-card text-center">
+            <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1.5">Total Users</p>
+            <p id="ds-users" class="text-2xl font-bold text-gray-900">—</p>
+          </div>
+          <div class="stat-card text-center">
+            <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1.5">Active</p>
+            <p id="ds-users-active" class="text-2xl font-bold text-green-600">—</p>
+          </div>
+          <div class="stat-card text-center">
+            <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1.5">Pending</p>
+            <p id="ds-users-pending" class="text-2xl font-bold text-amber-600">—</p>
+          </div>
+          <div class="stat-card text-center">
+            <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1.5">Banned</p>
+            <p id="ds-users-banned" class="text-2xl font-bold text-red-500">—</p>
+          </div>
+        </div>
+
+        <!-- Info banner -->
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3 text-sm text-blue-700">
+          <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <span>Users appear here after they register on the website. <strong>Pending</strong> users can view free prompts but cannot save favourites until approved. Use the website integration code to enable registration.</span>
+        </div>
+
+        <!-- Filter tabs -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <button class="usr-filter-btn filter-tab active" data-status="" onclick="setFilter(this,'')">
+            All <span id="fc-all" class="ml-1.5 text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">0</span>
+          </button>
+          <button class="usr-filter-btn filter-tab" data-status="pending" onclick="setFilter(this,'pending')">
+            <span class="w-2 h-2 rounded-full bg-amber-500 inline-block mr-1.5"></span>
+            Pending <span id="fc-pending" class="ml-1.5 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">0</span>
+          </button>
+          <button class="usr-filter-btn filter-tab" data-status="active" onclick="setFilter(this,'active')">
+            <span class="w-2 h-2 rounded-full bg-green-500 inline-block mr-1.5"></span>
+            Active <span id="fc-active" class="ml-1.5 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">0</span>
+          </button>
+          <button class="usr-filter-btn filter-tab" data-status="banned" onclick="setFilter(this,'banned')">
+            <span class="w-2 h-2 rounded-full bg-red-500 inline-block mr-1.5"></span>
+            Banned <span id="fc-banned" class="ml-1.5 text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">0</span>
+          </button>
+        </div>
+
+        <!-- Users table -->
+        <div class="card table-scroll">
+          <table class="tbl">
+            <thead><tr>
+              <th>User</th>
+              <th>Status</th>
+              <th>Role</th>
+              <th class="hidden md:table-cell">Dates</th>
+              <th class="hidden sm:table-cell">Saved</th>
+              <th class="w-32">Actions</th>
+            </tr></thead>
+            <tbody id="usr-tbody"></tbody>
+          </table>
+        </div>
+
+      </div><!-- /p-8 -->
+    </main>
+  </div>
+</div>
+
+<!-- ═══ VIEW USER PROFILE MODAL ═══ -->
+<div id="modal-view-user" class="modal-wrap" style="display:none">
+  <div class="modal-box max-w-md my-4">
+    <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl">
+      <h2 class="text-lg font-bold text-gray-900">User Profile</h2>
+      <button onclick="pvCloseViewModal()" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <div id="view-user-body" class="px-6 py-5">
+      <!-- populated by JS -->
+    </div>
+  </div>
+</div>
+
+<style>
+.filter-tab {
+  display: inline-flex; align-items: center;
+  padding: 7px 14px; border-radius: 100px; font-size: 13px; font-weight: 600;
+  background: #fff; border: 1.5px solid #e5e7eb; color: #6b7280;
+  cursor: pointer; transition: all .15s;
+}
+.filter-tab:hover { border-color: #d1d5db; color: #374151; }
+.filter-tab.active { background: linear-gradient(135deg,#4f46e5,#7c3aed); border-color: transparent; color: #fff; }
+.filter-tab.active span.bg-gray-200 { background: rgba(255,255,255,.3); color: #fff; }
+</style>
+
+<script type="module">
+import { guardPage }     from "./js/guard.js";
+import { injectSidebar } from "./js/sidebar.js";
+import { loadUsers, getUserStats } from "./js/users.js";
+
+window.setFilter = async (btn, status) => {
+  document.querySelectorAll(".usr-filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  await loadUsers(status);
+};
+
+injectSidebar();
+guardPage(async () => {
+  // Load user stats for stat cards
+  const stats = await getUserStats();
+  const set = (id,v) => { const el=document.getElementById(id);if(el)el.textContent=v; };
+  set("ds-users", stats.total);
+  set("ds-users-active", stats.active);
+  set("ds-users-pending", stats.pending);
+  set("ds-users-banned", stats.banned);
+
+  // Pending badge
+  const badge = document.getElementById("users-pending-badge");
+  if (badge) { badge.textContent=stats.pending; badge.style.display=stats.pending>0?"flex":"none"; }
+
+  await loadUsers();
+
+  // Sync mobile count
+  const cnt=document.getElementById("usr-count"), cntM=document.getElementById("usr-count-m");
+  if(cnt&&cntM){const obs=new MutationObserver(()=>cntM.textContent=cnt.textContent);obs.observe(cnt,{childList:true,characterData:true,subtree:true});}
+});
+</script>
+</body>
+</html>
