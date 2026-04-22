@@ -179,16 +179,15 @@
 </div>
 
 <script type="module">
-import { guard }     from "./js/guard.js";
-import { initSidebar } from "./js/sidebar.js";
+import { guardPage }     from "./js/guard.js";
+import { injectSidebar } from "./js/sidebar.js";
 import { loadPrompts, openAddPrompt, savePrompt } from "./js/prompts.js";
 import { closeModal, bindPreview } from "./js/ui.js";
 
 window.closeModal = closeModal;
 
-await guard();
-initSidebar();
-(async () => {
+injectSidebar();
+guardPage(async () => {
   bindPreview("f-image","f-img-preview");
   await loadPrompts();
 

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Upgrade to Pro — PromptVault</title>
+<meta name="description" content="Upgrade to PromptVault Pro with coins. No ads, all premium prompts unlocked, submit your own prompts and earn coins."/>
+<link rel="canonical" href="https://YOUR_DOMAIN/pro.html"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="./css/style.css"/>
+</head>
+<body>
+
+<script type="module">
+import { auth }             from "./js/firebase.js";
+import { onAuthStateChanged }from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+import { getUserProfile, isProUser } from "./js/auth.js";
+import { getAppConfig, getCategoryStats } from "./js/db.js";
+import { getCoinConfig, upgradeToPro, removeAdsWithCoins } from "./js/coins.js";
+import { injectNav, injectFooter } from "./js/nav.js";
+import { initAppBanner, toast } from "./js/ui.js";
+
+let currentProfile = null;
+
+(async () => {
+  const [cfg, coinCfg] = await Promise.all([
+    getAppConfig().catch(()=>({})),
+    getCoinConfig().catch(()=>({}))
+  ]);
+
+  injectNav(cfg);
+  initAppBanner(cfg);
+
+  const monthly = coinCfg.proMonthlyCoins || 500;
+  const yearly  = coinCfg.proYearlyCoins  || 4500;
+  const adCost  = coinCfg.adRemovalCoins  || 200;
+  const adDays  = coinCfg.adRemovalDays   || 30;
+  const features= (coinCfg.proFeatures || "No ads, all premium prompts unlocked, submit prompts, earn coins").split(",").map(f=>f.trim());
+
+  document.getElementById("price-monthly").textContent = monthly+" 🪙";
+  document.getElementById("price-yearly").textContent  = yearly+" 🪙";
+  document.getElementById("price-ad").textContent      = adCost+" 🪙 / "+adDays+" days";
+
+  const featHtml = features.map(f=>`<li>${f}</li>`).join("");
+  document.querySelectorAll(".pro-feature-list").forEach(el => el.innerHTML = featHtml);
+
+  // Auth state
+  onAuthStateChanged(auth, async user => {
+    if (!user) {
+      document.getElementById("cta-area").innerHTML = `
+        <a href="./auth.html?tab=register&from=pro.html" class="btn-upgrade btn-upgrade-pro" style="display:block;text-align:center;max-width:320px;margin:0 auto;text-decoration:none;padding:14px;">
+          Register Free to Get Started
+        </a>`;
+      return;
+    }
+    currentProfile = await getUserProfile(user.uid);
+    const coins = currentProfile?.coins || 0;
+    const isPro = isProUser(currentProfile);
+
+    document.getElementById("user-coins-display").textContent = coins;
+    document.getElementById("coin-display-wrap").classList.remove("hidden");
+
+    if (isPro) {
+      const exp = currentProfile.proExpiresAt?.seconds ? new Date(currentProfile.proExpiresAt.seconds*1000).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}) : "—";
+      document.getElementById("cta-area").innerHTML = `
+        <div style="text-align:center;padding:24px;background:rgba(245,158,11,.1);border:2px solid rgba(245,158,11,.3);border-radius:20px;max-width:400px;margin:0 auto;">
+          <div style="font-size:2.5rem;margin-bottom:12px;">⭐</div>
+          <h3 style="font-size:1.2rem;font-weight:800;margin-bottom:8px;">You're already Pro!</h3>
+          <p style="font-size:14px;color:var(--text2);">Pro access expires: <strong>${exp}</strong></p>
+          <a href="./profile.html" class="btn-upgrade btn-upgrade-monthly" style="display:block;text-align:center;margin-top:16px;text-decoration:none;padding:12px;">View My Profile →</a>
+        </div>`;
+    } else {
+      document.getElementById("btn-monthly")?.addEventListener("click", async () => {
+        if (coins < monthly) { toast(`You need ${monthly} coins. You have ${coins}.`,"warn"); return; }
+        if (!confirm(`Upgrade to Pro for ${monthly} coins (30 days)?`)) return;
+        try {
+          const res = await upgradeToPro(user.uid, "monthly");
+          toast("🎉 Welcome to Pro! Enjoy all premium features.");
+          setTimeout(()=>window.location.reload(),1500);
+        } catch(e) { toast(e.message,"error"); }
+      });
+      document.getElementById("btn-yearly")?.addEventListener("click", async () => {
+        if (coins < yearly) { toast(`You need ${yearly} coins. You have ${coins}.`,"warn"); return; }
+        if (!confirm(`Upgrade to Pro for ${yearly} coins (365 days)?`)) return;
+        try {
+          await upgradeToPro(user.uid, "yearly");
+          toast("🎉 Welcome to Pro! 12 months activated.");
+          setTimeout(()=>window.location.reload(),1500);
+        } catch(e) { toast(e.message,"error"); }
+      });
+      document.getElementById("btn-remove-ads")?.addEventListener("click", async () => {
+        if (coins < adCost) { toast(`You need ${adCost} coins. You have ${coins}.`,"warn"); return; }
+        if (!confirm(`Remove ads for ${adDays} days using ${adCost} coins?`)) return;
+        try {
+          await removeAdsWithCoins(user.uid);
+          toast(`Ads removed for ${adDays} days ✓`);
+        } catch(e) { toast(e.message,"error"); }
+      });
+    }
+  });
+
+  injectFooter(cfg);
+})();
+</script>
+
+<main style="max-width:1100px;margin:0 auto;padding:48px 20px 80px;">
+  <div style="text-align:center;margin-bottom:48px;">
+    <div style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);border-radius:100px;font-size:12.5px;color:var(--amber);font-weight:700;margin-bottom:16px;">⭐ Go Pro with Coins</div>
+    <h1 style="font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;margin-bottom:12px;">Unlock Everything with <span style="background:linear-gradient(135deg,#f59e0b,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Coins</span></h1>
+    <p style="font-size:16px;color:var(--text2);max-width:500px;margin:0 auto;">Earn coins by referring friends, submitting prompts, and daily logins. Spend them to go Pro.</p>
+    <div id="coin-display-wrap" class="hidden" style="margin-top:16px;">
+      <span class="coin-display">🪙 You have <span id="user-coins-display">0</span> coins</span>
+    </div>
+  </div>
+
+  <!-- Plans -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-bottom:40px;">
+
+    <!-- Monthly -->
+    <div class="pro-plan-card">
+      <div style="font-size:1.5rem;margin-bottom:12px;">⭐</div>
+      <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:6px;">Pro Monthly</h2>
+      <p class="pro-price" id="price-monthly">500 🪙</p>
+      <p class="pro-price-sub">30 days Pro access</p>
+      <ul class="pro-feature-list"></ul>
+      <button id="btn-monthly" class="btn-upgrade btn-upgrade-monthly">Get Monthly Pro</button>
+    </div>
+
+    <!-- Yearly — featured -->
+    <div class="pro-plan-card featured">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <span style="font-size:1.5rem;">⭐</span>
+        <span style="font-size:11px;font-weight:700;background:var(--amber);color:#1a1a00;padding:3px 10px;border-radius:100px;">BEST VALUE</span>
+      </div>
+      <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:6px;">Pro Yearly</h2>
+      <p class="pro-price" id="price-yearly">4500 🪙</p>
+      <p class="pro-price-sub">365 days · Save ~25%</p>
+      <ul class="pro-feature-list"></ul>
+      <button id="btn-yearly" class="btn-upgrade btn-upgrade-pro">Get Yearly Pro</button>
+    </div>
+
+    <!-- Remove ads only -->
+    <div class="pro-plan-card">
+      <div style="font-size:1.5rem;margin-bottom:12px;">🚫</div>
+      <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:6px;">Ad-Free Only</h2>
+      <p class="pro-price" id="price-ad">200 🪙</p>
+      <p class="pro-price-sub">Remove all ads (no premium unlock)</p>
+      <ul class="pro-feature-list" style="min-height:100px;">
+        <li>No banner or interstitial ads</li>
+        <li>Clean reading experience</li>
+        <li>Keep your coins for prompts</li>
+      </ul>
+      <button id="btn-remove-ads" class="btn-upgrade" style="background:var(--surface2);color:var(--text);border:1.5px solid var(--border2);">Remove Ads</button>
+    </div>
+  </div>
+
+  <!-- CTA area (changes based on auth state) -->
+  <div id="cta-area"></div>
+
+  <!-- How to earn coins -->
+  <div style="margin-top:56px;text-align:center;">
+    <h2 style="font-size:1.4rem;font-weight:800;margin-bottom:32px;">How to Earn 🪙 Coins</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;max-width:900px;margin:0 auto;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px;text-align:center;">
+        <div style="font-size:2rem;margin-bottom:10px;">👥</div>
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:6px;">Refer Friends</h3>
+        <p style="font-size:13px;color:var(--text2);">Share your referral code. Earn coins every time someone registers with it.</p>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px;text-align:center;">
+        <div style="font-size:2rem;margin-bottom:10px;">📤</div>
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:6px;">Submit Prompts</h3>
+        <p style="font-size:13px;color:var(--text2);">Submit quality prompts. Earn coins when admin approves them.</p>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px;text-align:center;">
+        <div style="font-size:2rem;margin-bottom:10px;">📅</div>
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:6px;">Daily Login</h3>
+        <p style="font-size:13px;color:var(--text2);">Log in every day to collect your daily coin bonus automatically.</p>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px;text-align:center;">
+        <div style="font-size:2rem;margin-bottom:10px;">✅</div>
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:6px;">Complete Profile</h3>
+        <p style="font-size:13px;color:var(--text2);">Fill in your profile completely for a one-time bonus reward.</p>
+      </div>
+    </div>
+  </div>
+</main>
+</body>
+</html>

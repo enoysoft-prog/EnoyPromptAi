@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI Prompt Categories — PromptVault</title>
+<meta name="description" content="Browse AI prompt categories: Image, Video, Writing, Marketing, Code and more. Find subcategories like Travel, Couple, Architecture and filter prompts precisely."/>
+<meta name="robots" content="index, follow"/>
+<link rel="canonical" href="https://YOUR_USERNAME.github.io/promptvault/categories.html"/>
+<meta property="og:title" content="AI Prompt Categories — PromptVault"/>
+<meta property="og:description" content="Browse all AI prompt categories and subcategories on PromptVault."/>
+<meta property="og:type" content="website"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="./css/style.css"/>
+</head>
+<body>
+
+<script type="module">
+import { getCategories, getSubcategories, getPrompts, getAppConfig } from "./js/db.js";
+import { renderCategoryCard, esc } from "./js/ui.js";
+import { injectNav, injectFooter } from "./js/nav.js";
+
+(async () => {
+  const cfg  = await getAppConfig().catch(()=>({}));
+  injectNav(cfg);
+
+  const cats = await getCategories().catch(()=>[]);
+  const container = document.getElementById("cats-container");
+  if (!container) { injectFooter(cfg); return; }
+
+  if (!cats.length) {
+    container.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">📭</div>
+      <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">No categories yet</h3>
+      <p style="color:var(--text2);">Categories added via the admin panel will appear here.</p>
+    </div>`;
+    injectFooter(cfg); return;
+  }
+
+  // Load prompt counts + subcats for each category in parallel
+  const sections = await Promise.all(cats.map(async cat => {
+    const [promptsData, subs] = await Promise.all([
+      getPrompts({ cat: cat.id, pageSize: 1 }).catch(()=>({ items:[] })),
+      getSubcategories(cat.id).catch(()=>[])
+    ]);
+    return { cat, subs, count: 0 }; // count via cards loaded below
+  }));
+
+  container.innerHTML = sections.map(({ cat, subs }) => {
+    const g = `linear-gradient(135deg,${cat.gradientStart||"#3730A3"},${cat.gradientEnd||"#7C3AED"})`;
+    const subHtml = subs.length
+      ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;" aria-label="Subcategories of ${esc(cat.name)}">
+           ${subs.map(s =>
+             `<a href="./prompts.html?cat=${cat.id}&subcat=${s.id}"
+               style="padding:5px 13px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);
+                      border-radius:100px;font-size:12.5px;font-weight:600;color:#fff;
+                      transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.22)'"
+                      onmouseout="this.style.background='rgba(255,255,255,.12)'">${esc(s.name)}</a>`
+           ).join("")}
+         </div>` : "";
+
+    return `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:22px;overflow:hidden;">
+      <div style="background:${g};padding:28px 24px 20px;position:relative;">
+        <div style="position:absolute;right:20px;top:20px;font-size:3rem;opacity:.25;">${cat.emoji||"📁"}</div>
+        <div style="font-size:2.5rem;margin-bottom:8px;">${cat.emoji||"📁"}</div>
+        <h2 style="font-size:1.4rem;font-weight:900;color:#fff;margin-bottom:4px;">${esc(cat.name)}</h2>
+        <p style="font-size:13px;color:rgba(255,255,255,.7);">Browse all ${esc(cat.name.toLowerCase())} prompts</p>
+        ${subHtml}
+      </div>
+      <div style="padding:16px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <p style="font-size:13px;color:var(--text2);">
+          ${subs.length ? `${subs.length} subcategor${subs.length===1?"y":"ies"}` : "All prompts"}
+        </p>
+        <a href="./prompts.html?cat=${cat.id}"
+          style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;
+                 background:${g};color:#fff;border-radius:10px;font-size:13.5px;font-weight:700;
+                 transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+          Browse →
+        </a>
+      </div>
+    </div>`;
+  }).join("");
+
+  injectFooter(cfg);
+})();
+</script>
+
+<main>
+  <div style="max-width:1200px;margin:0 auto;padding:40px 20px 60px;">
+
+    <div style="text-align:center;margin-bottom:48px;">
+      <h1 style="font-size:clamp(1.6rem,4vw,2.5rem);font-weight:900;margin-bottom:12px;">
+        Browse by <span style="background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Category</span>
+      </h1>
+      <p style="font-size:16px;color:var(--text2);max-width:480px;margin:0 auto;">
+        Find the perfect AI prompt by browsing our curated categories and subcategories.
+      </p>
+    </div>
+
+    <!-- Ad -->
+    <div class="ad-wrap">
+      <p class="ad-label">Advertisement</p>
+      <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+           data-ad-slot="6789012345" data-ad-format="auto" data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+
+    <!-- Categories grid -->
+    <div id="cats-container"
+      style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;"
+      aria-label="Prompt categories">
+      <!-- Skeleton -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:22px;overflow:hidden;">
+        <div style="height:160px;animation:sk-pulse 1.5s infinite;background:var(--surface2)"></div>
+        <div style="padding:16px 24px;"><div style="height:12px;background:var(--surface2);border-radius:6px;width:60%;animation:sk-pulse 1.5s infinite;"></div></div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:22px;overflow:hidden;">
+        <div style="height:160px;animation:sk-pulse 1.5s infinite;background:var(--surface2);animation-delay:.1s"></div>
+        <div style="padding:16px 24px;"><div style="height:12px;background:var(--surface2);border-radius:6px;width:50%;animation:sk-pulse 1.5s infinite;animation-delay:.1s"></div></div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:22px;overflow:hidden;">
+        <div style="height:160px;animation:sk-pulse 1.5s infinite;background:var(--surface2);animation-delay:.2s"></div>
+        <div style="padding:16px 24px;"><div style="height:12px;background:var(--surface2);border-radius:6px;width:70%;animation:sk-pulse 1.5s infinite;animation-delay:.2s"></div></div>
+      </div>
+    </div>
+
+    <!-- Bottom Ad -->
+    <div class="ad-wrap" style="margin-top:40px;">
+      <p class="ad-label">Advertisement</p>
+      <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+           data-ad-slot="7890123456" data-ad-format="auto" data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

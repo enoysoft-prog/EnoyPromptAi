@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Browse AI Prompts — PromptVault</title>
+<meta name="description" content="Browse and filter 1000+ AI prompts by category, subcategory, AI tool, free or premium. Find the perfect prompt for Midjourney, DALL·E 3, ChatGPT and more."/>
+<meta name="robots" content="index, follow"/>
+<link rel="canonical" href="https://YOUR_USERNAME.github.io/promptvault/prompts.html"/>
+<meta property="og:title" content="Browse AI Prompts — PromptVault"/>
+<meta property="og:description" content="Filter 1000+ AI prompts by category, tool and type."/>
+<meta property="og:type" content="website"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="./css/style.css"/>
+</head>
+<body>
+
+<script type="module">
+import { getCategories, getSubcategories, getPrompts, getTools, getAppConfig, searchPrompts, cdnUrl } from "./js/db.js";
+import { renderPromptCard, skeletonCards, esc } from "./js/ui.js";
+import { injectNav, injectFooter } from "./js/nav.js";
+
+const params      = new URLSearchParams(location.search);
+let currentCat    = params.get("cat")      || "";
+let currentSubcat = params.get("subcat")   || "";
+let currentType   = params.get("type")     || "";
+let currentTool   = params.get("tool")     || "";
+let currentQ      = params.get("q")        || "";
+let lastDoc       = null;
+let isLoading     = false;
+let allCats       = [];
+
+(async () => {
+  const cfg = await getAppConfig().catch(() => ({}));
+  injectNav(cfg);
+
+  // Load categories + tools in parallel
+  const [cats, tools] = await Promise.all([
+    getCategories().catch(()=>[]),
+    getTools().catch(()=>[])
+  ]);
+  allCats = cats;
+
+  // Populate category chips
+  buildCategoryChips(cats);
+  buildTypeChips();
+  buildToolSelect(tools);
+
+  // If category already selected, load subcategories
+  if (currentCat) {
+    await buildSubcategoryChips(currentCat);
+    const catObj = cats.find(c => c.id === currentCat);
+    if (catObj) updatePageMeta(catObj.name);
+  }
+
+  // Search box in filter bar
+  const searchInput = document.getElementById("filter-search");
+  if (searchInput) {
+    searchInput.value = currentQ;
+    let timer;
+    searchInput.addEventListener("input", () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        currentQ = searchInput.value.trim();
+        resetAndLoad();
+      }, 400);
+    });
+    searchInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") { clearTimeout(timer); currentQ = searchInput.value.trim(); resetAndLoad(); }
+    });
+  }
+
+  // Load-more button
+  document.getElementById("load-more-btn")?.addEventListener("click", loadMore);
+
+  // Initial load
+  await resetAndLoad();
+  injectFooter(cfg);
+})();
+
+function buildCategoryChips(cats) {
+  const wrap = document.getElementById("cat-chips");
+  if (!wrap) return;
+  const allChip = `<button class="filter-chip ${!currentCat?"active":""}" onclick="selectCat('')">All</button>`;
+  const chips = cats.map(c =>
+    `<button class="filter-chip ${currentCat===c.id?"active":""}"
+      onclick="selectCat('${c.id}','${esc(c.name)}')">${c.emoji||""} ${esc(c.name)}</button>`
+  ).join("");
+  wrap.innerHTML = allChip + chips;
+}
+
+async function buildSubcategoryChips(catId) {
+  const wrap = document.getElementById("subcat-chips-wrap");
+  const inner = document.getElementById("subcat-chips");
+  if (!wrap || !inner) return;
+  const subs = await getSubcategories(catId).catch(()=>[]);
+  if (!subs.length) { wrap.classList.add("hidden"); return; }
+  wrap.classList.remove("hidden");
+  inner.innerHTML =
+    `<button class="filter-chip ${!currentSubcat?"active":""}" onclick="selectSubcat('')">All</button>` +
+    subs.map(s =>
+      `<button class="filter-chip ${currentSubcat===s.id?"active":""}"
+        onclick="selectSubcat('${s.id}','${esc(s.name)}')">${esc(s.name)}</button>`
+    ).join("");
+}
+
+function buildTypeChips() {
+  const types = [
+    { val:"", label:"All Types" },
+    { val:"free", label:"✓ Free" },
+    { val:"premium", label:"👑 Premium" },
+    { val:"hot", label:"🔥 Hot" }
+  ];
+  document.getElementById("type-chips").innerHTML = types.map(t =>
+    `<button class="filter-chip ${currentType===t.val?"active":""}"
+      onclick="selectType('${t.val}')">${t.label}</button>`
+  ).join("");
+}
+
+function buildToolSelect(tools) {
+  const sel = document.getElementById("tool-select");
+  if (!sel) return;
+  sel.innerHTML = `<option value="">All Tools</option>` +
+    tools.map(t => `<option value="${esc(t.name)}" ${currentTool===t.name?"selected":""}>${esc(t.name)}</option>`).join("");
+  sel.onchange = () => { currentTool = sel.value; resetAndLoad(); };
+}
+
+// Global onclick handlers (called from inline HTML)
+window.selectCat = async (id, name="") => {
+  currentCat = id; currentSubcat = "";
+  document.getElementById("subcat-chips-wrap")?.classList.add("hidden");
+  buildCategoryChips(allCats);
+  if (id) {
+    await buildSubcategoryChips(id);
+    updatePageMeta(name);
+  } else {
+    document.getElementById("page-heading").textContent = "Browse All Prompts";
+  }
+  buildTypeChips();
+  resetAndLoad();
+};
+
+window.selectSubcat = (id) => {
+  currentSubcat = id;
+  document.getElementById("subcat-chips")?.querySelectorAll(".filter-chip")
+    .forEach(b => b.classList.toggle("active", b.getAttribute("onclick")?.includes(`'${id}'`)));
+  resetAndLoad();
+};
+
+window.selectType = (val) => {
+  currentType = val; buildTypeChips(); resetAndLoad();
+};
+
+async function resetAndLoad() {
+  lastDoc = null;
+  document.getElementById("prompts-grid").innerHTML = skeletonCards(6);
+  document.getElementById("load-more-btn")?.classList.add("hidden");
+  await loadMore();
+}
+
+async function loadMore() {
+  if (isLoading) return;
+  isLoading = true;
+  const btn = document.getElementById("load-more-btn");
+  if (btn && lastDoc) btn.textContent = "Loading…";
+
+  try {
+    let items, hasMore;
+    if (currentQ) {
+      const results = await searchPrompts(currentQ);
+      items = results; hasMore = false;
+    } else {
+      const res = await getPrompts({ cat:currentCat, subcat:currentSubcat,
+        type:currentType, tool:currentTool, lastDoc });
+      items = res.items; hasMore = res.hasMore; lastDoc = res.lastDoc;
+    }
+
+    const grid = document.getElementById("prompts-grid");
+    if (!lastDoc || !items.length) {
+      grid.innerHTML = "";
+    } else {
+      // Remove skeletons on first load
+      grid.querySelectorAll(".skeleton-card").forEach(s => s.remove());
+    }
+
+    if (!items.length && !lastDoc) {
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+        <div class="empty-state-icon">🔍</div>
+        <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">No prompts found</h3>
+        <p style="color:var(--text2);">Try different filters or search terms.</p>
+      </div>`;
+    } else {
+      grid.innerHTML += items.map(p => renderPromptCard(p)).join("");
+    }
+
+    // Update count
+    document.getElementById("result-count").textContent =
+      currentQ ? `${items.length} result${items.length!==1?"s":""}` : "";
+
+    if (btn) {
+      btn.classList.toggle("hidden", !hasMore);
+      btn.textContent = "Load More Prompts";
+    }
+  } catch (e) {
+    document.getElementById("prompts-grid").innerHTML =
+      `<div class="empty-state" style="grid-column:1/-1">
+        <div class="empty-state-icon">⚠️</div>
+        <p style="color:var(--text2);">Error loading prompts: ${e.message}</p>
+      </div>`;
+  }
+  isLoading = false;
+}
+
+function updatePageMeta(catName) {
+  document.getElementById("page-heading").textContent = `${catName} Prompts`;
+  document.title = `${catName} AI Prompts — PromptVault`;
+}
+</script>
+
+<!-- Page content renders after nav is injected -->
+<main>
+  <div style="max-width:1200px;margin:0 auto;padding:32px 20px 60px;">
+
+    <!-- Heading row -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:28px;">
+      <div>
+        <h1 id="page-heading" style="font-size:clamp(1.4rem,3vw,2rem);font-weight:900;margin-bottom:6px;">Browse All Prompts</h1>
+        <p id="result-count" style="font-size:13.5px;color:var(--text2);"></p>
+      </div>
+      <!-- Search in filter bar -->
+      <div style="position:relative;">
+        <svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--text3);"
+          fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input id="filter-search" type="search" placeholder="Search prompts…"
+          style="background:var(--surface);border:1.5px solid var(--border);border-radius:10px;
+                 padding:9px 14px 9px 36px;font-size:13.5px;color:var(--text);outline:none;
+                 width:220px;transition:border-color .2s;"
+          aria-label="Search prompts"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
+      </div>
+    </div>
+
+    <!-- Ad: top of browse page -->
+    <div class="ad-wrap">
+      <p class="ad-label">Advertisement</p>
+      <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+           data-ad-slot="4567890123" data-ad-format="auto" data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+
+    <!-- Category filter -->
+    <div style="margin-bottom:12px;">
+      <p style="font-size:11.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Category</p>
+      <div class="filter-bar" id="cat-chips" role="group" aria-label="Filter by category">
+        <div class="filter-chip" style="animation:sk-pulse 1.5s infinite;pointer-events:none;width:60px;"></div>
+        <div class="filter-chip" style="animation:sk-pulse 1.5s infinite;pointer-events:none;width:70px;"></div>
+        <div class="filter-chip" style="animation:sk-pulse 1.5s infinite;pointer-events:none;width:55px;"></div>
+      </div>
+    </div>
+
+    <!-- Subcategory filter (hidden until category selected) -->
+    <div id="subcat-chips-wrap" class="hidden" style="margin-bottom:12px;">
+      <p style="font-size:11.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Subcategory</p>
+      <div class="filter-bar" id="subcat-chips" role="group" aria-label="Filter by subcategory"></div>
+    </div>
+
+    <!-- Type + Tool row -->
+    <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:28px;">
+      <div style="flex:1;min-width:0;">
+        <p style="font-size:11.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Type</p>
+        <div class="filter-bar" id="type-chips" role="group" aria-label="Filter by type"></div>
+      </div>
+      <div style="flex-shrink:0;">
+        <p style="font-size:11.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">AI Tool</p>
+        <select class="filter-select" id="tool-select" aria-label="Filter by AI tool">
+          <option value="">All Tools</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Prompts grid -->
+    <div class="prompts-grid prompts-grid-lg" id="prompts-grid" aria-label="Prompts list">
+      <!-- Skeletons shown initially, replaced by JS -->
+    </div>
+
+    <!-- Load more -->
+    <button class="load-more-btn hidden" id="load-more-btn" aria-label="Load more prompts">
+      Load More Prompts
+    </button>
+
+    <!-- Ad: bottom -->
+    <div class="ad-wrap" style="margin-top:40px;">
+      <p class="ad-label">Advertisement</p>
+      <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+           data-ad-slot="5678901234" data-ad-format="auto" data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Submit a Prompt — PromptVault</title>
+<meta name="description" content="Submit your AI prompt to PromptVault. Get approved and earn coins. Share your best Midjourney, DALL·E, ChatGPT prompts with the community."/>
+<meta name="robots" content="index, follow"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="./css/style.css"/>
+</head>
+<body>
+
+<script type="module">
+import { auth }              from "./js/firebase.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+import { getUserProfile }    from "./js/auth.js";
+import { getAppConfig, getCategories, getSubcategories, getTools } from "./js/db.js";
+import { getCoinConfig, submitPrompt }  from "./js/coins.js";
+import { injectNav, injectFooter }      from "./js/nav.js";
+import { initAppBanner, toast, esc }    from "./js/ui.js";
+
+let currentUser = null, currentProfile = null;
+
+(async () => {
+  const [cfg, coinCfg] = await Promise.all([
+    getAppConfig().catch(()=>({})),
+    getCoinConfig().catch(()=>({}))
+  ]);
+  injectNav(cfg);
+  initAppBanner(cfg);
+
+  const reward = coinCfg.submissionApproved || 100;
+  document.getElementById("coin-reward-display").textContent = reward;
+
+  // Load categories
+  const [cats, tools] = await Promise.all([getCategories().catch(()=>[]), getTools().catch(()=>[])]);
+  const catSel = document.getElementById("sub-cat");
+  catSel.innerHTML = `<option value="">— Select Category —</option>` +
+    cats.map(c=>`<option value="${esc(c.id)}" data-name="${esc(c.name)}">${c.emoji?c.emoji+" ":""}${esc(c.name)}</option>`).join("");
+
+  catSel.addEventListener("change", async () => {
+    const catId = catSel.value;
+    const wrap  = document.getElementById("subcat-wrap");
+    const subSel= document.getElementById("sub-subcat");
+    if (!catId) { wrap.classList.add("hidden"); return; }
+    const subs = await getSubcategories(catId).catch(()=>[]);
+    if (!subs.length) { wrap.classList.add("hidden"); return; }
+    wrap.classList.remove("hidden");
+    subSel.innerHTML = `<option value="">— No subcategory —</option>` +
+      subs.map(s=>`<option value="${esc(s.id)}" data-name="${esc(s.name)}">${esc(s.name)}</option>`).join("");
+  });
+
+  const toolInput = document.getElementById("sub-tool");
+  const toolList  = document.getElementById("sub-tool-list");
+  if (toolList) toolList.innerHTML = tools.map(t=>`<option value="${esc(t.name)}"/>`).join("");
+
+  // Auth check
+  onAuthStateChanged(auth, async user => {
+    if (!user) {
+      document.getElementById("submit-form-wrap").innerHTML = `
+        <div style="text-align:center;padding:40px 20px;background:var(--surface);border:1px solid var(--border);border-radius:20px;">
+          <div style="font-size:2.5rem;margin-bottom:12px;">🔒</div>
+          <h2 style="font-size:1.2rem;font-weight:800;margin-bottom:8px;">Sign in to submit</h2>
+          <p style="color:var(--text2);font-size:14px;margin-bottom:20px;">You need an account to submit prompts and earn coins.</p>
+          <a href="./auth.html?tab=register&from=submit.html" class="btn-primary" style="text-decoration:none;">Create Free Account</a>
+        </div>`;
+      return;
+    }
+    currentUser    = user;
+    currentProfile = await getUserProfile(user.uid);
+    if (currentProfile?.status === "pending") {
+      document.getElementById("submit-form-wrap").insertAdjacentHTML("afterbegin", `
+        <div style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:14px;padding:14px 18px;margin-bottom:20px;">
+          <p style="font-weight:700;color:var(--amber);">⏳ Account pending approval</p>
+          <p style="font-size:13.5px;color:var(--text2);margin-top:4px;">You can still submit prompts. They'll be reviewed once your account is approved.</p>
+        </div>`);
+    }
+  });
+
+  // Submit form
+  document.getElementById("submit-form")?.addEventListener("submit", async e => {
+    e.preventDefault();
+    if (!currentUser) { toast("Please sign in first","error"); return; }
+    const btn = document.getElementById("submit-btn");
+    const title    = document.getElementById("sub-title").value.trim();
+    const fullText = document.getElementById("sub-fulltext").value.trim();
+    const catSel2  = document.getElementById("sub-cat");
+    const subSel2  = document.getElementById("sub-subcat");
+    const catId    = catSel2.value;
+    const catName  = catSel2.selectedOptions[0]?.dataset?.name||"";
+    const subId    = subSel2.value;
+    const subName  = subSel2.selectedOptions[0]?.dataset?.name||"";
+    if (!title)    { toast("Title is required","error"); return; }
+    if (!fullText) { toast("Prompt text is required","error"); return; }
+    if (!catId)    { toast("Please select a category","error"); return; }
+    btn.disabled=true; btn.textContent="Submitting…";
+    try {
+      await submitPrompt(currentUser.uid, currentProfile?.displayName||"", currentProfile?.email||"", {
+        title,
+        category:        catSel2.selectedOptions[0]?.dataset?.name?.toLowerCase()||"",
+        categoryId:      catId,
+        categoryName:    catName,
+        subcategoryId:   subId,
+        subcategoryName: subName,
+        tool:            document.getElementById("sub-tool").value.trim(),
+        description:     document.getElementById("sub-desc").value.trim(),
+        fullText,
+        tags:            document.getElementById("sub-tags").value.split(",").map(t=>t.trim()).filter(Boolean),
+        imageUrl:        document.getElementById("sub-imageurl").value.trim(),
+      });
+      toast("📤 Submitted! You'll earn coins when it's approved.");
+      document.getElementById("submit-form").reset();
+      document.getElementById("subcat-wrap").classList.add("hidden");
+    } catch(err){ toast("Failed: "+err.message,"error"); }
+    finally{ btn.disabled=false; btn.textContent="Submit Prompt"; }
+  });
+
+  injectFooter(cfg);
+})();
+</script>
+
+<main style="max-width:760px;margin:0 auto;padding:40px 20px 80px;">
+  <div style="text-align:center;margin-bottom:36px;">
+    <h1 style="font-size:clamp(1.6rem,4vw,2.2rem);font-weight:900;margin-bottom:10px;">Submit a Prompt</h1>
+    <p style="font-size:15px;color:var(--text2);">Share your best AI prompts with the community and earn
+      <span id="coin-reward-display" style="color:var(--amber);font-weight:700;">100</span>
+      🪙 coins when approved.
+    </p>
+  </div>
+
+  <div id="submit-form-wrap">
+    <!-- Auth guard message inserted here if not logged in -->
+    <div class="submit-card">
+      <div style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:14px;padding:14px 18px;margin-bottom:24px;display:flex;gap:12px;">
+        <span style="font-size:1.3rem;flex-shrink:0;">💡</span>
+        <div style="font-size:13.5px;color:var(--text2);line-height:1.6;">
+          Submitted prompts are <strong>reviewed by our admin team</strong> before being published. Quality prompts that produce great results are approved and you earn coins automatically.
+        </div>
+      </div>
+      <form id="submit-form" novalidate>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+          <div style="grid-column:1/-1;">
+            <label style="display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:5px;">Prompt Title <span style="color:var(--red);">*</span></label>
+            <input id="sub-title" class="auth-input" placeholder="e.g. Ethereal Forest Portrait"/>
+          </div>
+          <div>
+            <label style="display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:5px;">Category <span style="color:var(--red);">*</span></label>
+            <select id="sub-cat" class="auth-input"><option value="">Loading…</option></select>
+          </div>
+          <div id="subcat-wrap" class="hidden">
+            <label style="display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:5px;">Subcategory</label>
+            <select id="sub-subcat" class="auth-input"><option value="">— None —</option></select>
+          </div>
+          <div>
+            <label style="display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:5px;">AI Tool</label>
+            <input id="sub-tool" class="auth-input" placeholder="Midjourney, DALL·E 3…" list="sub-tool-list" autocomplete="off"/>
+            <datalist id="sub-tool-list"></datalist>
+          </div>
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:5px;">Short Description</label>
+          <textarea id="sub-desc" class="auth-input" rows="2" placeholder="2-3 sentences describing what this prompt produces…"></textarea>
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:5px;">Full Prompt Text <span style="color:var(--red);">*</span></label>
+          <textarea id="sub-fulltext" class="auth-input" rows="7" style="font-family:monospace;font-size:13px;" placeholder="Paste the complete AI prompt here…"></textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
+          <div>
+            <label style="display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:5px;">Tags (comma-separated)</label>
+            <input id="sub-tags" class="auth-input" placeholder="portrait, forest, ethereal"/>
+          </div>
+          <div>
+            <label style="display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:5px;">Sample Image URL (optional)</label>
+            <input id="sub-imageurl" type="url" class="auth-input" placeholder="https://…"/>
+          </div>
+        </div>
+        <button type="submit" id="submit-btn" class="auth-btn" style="max-width:280px;">📤 Submit for Review</button>
+      </form>
+    </div>
+  </div>
+</main>
+</body>
+</html>

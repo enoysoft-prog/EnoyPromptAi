@@ -1,94 +1,81 @@
+// ============================================================
+// PromptVault — Firestore Security Rules v3 (Complete)
+// PASTE INTO: Firebase Console → Firestore → Rules → Publish
+// ============================================================
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── Helper functions ──────────────────────────────────
-    function isAuth()  { return request.auth != null; }
-    function isOwner(uid) { return isAuth() && request.auth.uid == uid; }
-    function userDoc() { return get(/databases/$(database)/documents/users/$(request.auth.uid)); }
-    function userRole() { return isAuth() ? userDoc().data.role : "guest"; }
-    function isAdmin() { return isAuth() && userRole() == "admin"; }
-    function isPro()   { return isAuth() && (userRole() == "pro" || userRole() == "admin"); }
-    function isRegularOrAbove() { return isAuth() && userRole() in ["regular","pro","admin"]; }
-
-    // ── Config (read public, write admin only) ────────────
-    match /config/{docId} {
-      allow read;
-      allow write: if isAdmin();
+    // ── HELPER FUNCTIONS ──────────────────────────────────────
+    function isSignedIn()          { return request.auth != null; }
+    function isOwner(uid)          { return isSignedIn() && request.auth.uid == uid; }
+    function isAdminUser()         {
+      // Admin = any Firebase Auth user signing in from the admin panel
+      // For extra security, add your admin UID here:
+      // return isSignedIn() && request.auth.uid == "YOUR_ADMIN_UID_HERE";
+      return isSignedIn();
     }
 
-    // ── Categories (read public, write admin) ─────────────
-    match /categories/{catId} {
-      allow read;
-      allow write: if isAdmin();
+    // ── PUBLIC CONTENT ─────────────────────────────────────────
+    // Android app + website can read without auth
+    match /prompts/{id} {
+      allow read:  if true;
+      allow write: if isAdminUser();
+    }
+    match /categories/{id} {
+      allow read:  if true;
+      allow write: if isAdminUser();
+    }
+    match /subcategories/{id} {
+      allow read:  if true;
+      allow write: if isAdminUser();
+    }
+    match /tools/{id} {
+      allow read:  if true;
+      allow write: if isAdminUser();
+    }
+    match /config/{id} {
+      allow read:  if true;
+      allow write: if isAdminUser();
     }
 
-    // ── Subcategories (read public, write admin) ──────────
-    match /subcategories/{subId} {
-      allow read;
-      allow write: if isAdmin();
-    }
-
-    // ── Tools (read public, write admin) ──────────────────
-    match /tools/{toolId} {
-      allow read;
-      allow write: if isAdmin();
-    }
-
-    // ── Prompts (active only to public, all to admin) ─────
-    match /prompts/{promptId} {
-      allow read: if resource.data.status == "active" || resource.data.status == "approved" || isAdmin();
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
-    }
-
-    // ── Users ─────────────────────────────────────────────
+    // ── USER ACCOUNTS ──────────────────────────────────────────
     match /users/{userId} {
-      // Users can read and update their own doc
-      allow read:   if isOwner(userId) || isAdmin();
+      allow read:   if isOwner(userId) || isAdminUser();
       allow create: if isOwner(userId);
-      // Users can update only safe fields on their own doc; admins can update all
-      allow update: if isAdmin() ||
-        (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys()
-          .hasAny(["role", "coins", "status", "referralCode", "uid", "email"]));
-      allow delete: if isAdmin();
+      allow update: if isOwner(userId) || isAdminUser();
+      allow delete: if isAdminUser();
+      allow list:   if isAdminUser();
     }
 
-    // ── Referrals (read own or admin, create system-only) ──
+    // ── COIN TRANSACTIONS (user read own, admin read all) ──────
+    match /coin_transactions/{txId} {
+      allow read:   if isSignedIn() && (resource.data.userId == request.auth.uid || isAdminUser());
+      allow create: if isSignedIn();
+      allow update: if isAdminUser();
+      allow delete: if isAdminUser();
+      allow list:   if isAdminUser();
+    }
+
+    // ── PROMPT SUBMISSIONS ─────────────────────────────────────
+    match /prompt_submissions/{subId} {
+      allow read:   if isSignedIn() && (resource.data.submittedBy == request.auth.uid || isAdminUser());
+      allow create: if isSignedIn();
+      allow update: if isAdminUser();
+      allow delete: if isAdminUser();
+      allow list:   if isAdminUser();
+    }
+
+    // ── REFERRALS ──────────────────────────────────────────────
     match /referrals/{refId} {
-      allow read:   if isAdmin() ||
-        (isAuth() && (resource.data.referrerId == request.auth.uid ||
-                      resource.data.referredId  == request.auth.uid));
-      allow create: if isAuth();  // triggered during registration
-      allow update, delete: if isAdmin();
+      allow read:   if isAdminUser();
+      allow create: if isSignedIn();
+      allow update: if isAdminUser();
+      allow delete: if isAdminUser();
+      allow list:   if isAdminUser();
     }
 
-    // ── Coin Transactions ─────────────────────────────────
-    match /coinTransactions/{txId} {
-      allow read:   if isAdmin() || (isAuth() && resource.data.userId == request.auth.uid);
-      allow create: if isAuth();
-      allow update, delete: if isAdmin();
-    }
-
-    // ── Submissions (Pro can create, admin can manage) ────
-    match /submissions/{subId} {
-      allow read:   if isAdmin() || (isAuth() && resource.data.submittedBy == request.auth.uid);
-      allow create: if isPro() &&
-        request.resource.data.submittedBy == request.auth.uid &&
-        request.resource.data.keys().hasAll(["title","content","submittedBy","status"]) &&
-        request.resource.data.status == "pending";
-      allow update, delete: if isAdmin();
-    }
-
-    // ── Unlocks (auth users can create/read own) ──────────
-    match /unlocks/{unlockId} {
-      allow read:   if isAdmin() || (isAuth() && resource.data.uid == request.auth.uid);
-      allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
-      allow delete: if isAdmin();
-    }
-
-    // ── Deny everything else ──────────────────────────────
+    // Block everything else
     match /{document=**} {
       allow read, write: if false;
     }

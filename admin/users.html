@@ -4,7 +4,6 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Users · PromptVault Admin</title>
-<meta name="robots" content="noindex,nofollow"/>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="./css/style.css"/>
 </head>
@@ -12,134 +11,89 @@
 <div id="pv-loader"><div class="text-center"><div class="page-spinner mx-auto mb-3"></div><p class="text-white/70 text-sm">Checking session…</p></div></div>
 <div id="pv-body" class="invisible">
   <div class="mobile-topbar lg:hidden">
-    <button class="btn-hamburger p-2 -ml-2 rounded-lg hover:bg-gray-100 text-gray-600">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-    </button>
-    <span class="font-bold text-gray-900 text-sm flex items-center gap-2">
-      <span class="w-6 h-6 bg-indigo-600 rounded-lg flex items-center justify-center text-white text-xs">✨</span>Users
-    </span>
+    <button class="btn-hamburger p-2 -ml-2 rounded-lg hover:bg-gray-100 text-gray-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    <span class="font-bold text-gray-900 text-sm">Users</span>
     <div class="w-8"></div>
   </div>
-  <div class="flex min-h-screen">
+  <div class="flex min-h-screen lg:min-h-0">
     <div id="sidebar-slot"></div>
     <main class="flex-1 flex flex-col min-w-0">
       <header class="hidden lg:flex bg-white border-b border-gray-100 px-8 py-4 items-center justify-between sticky top-0 z-10">
-        <div><h1 class="text-xl font-bold text-gray-900">Users</h1><p class="text-xs text-gray-400 mt-0.5">Manage accounts, roles &amp; coins</p></div>
-        <button onclick="loadUsers()" class="btn-sec btn-sm">↻ Refresh</button>
+        <div><h1 class="text-xl font-bold text-gray-900">Users <span id="usr-count" class="ml-2 text-sm font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">—</span></h1><p class="text-xs text-gray-400 mt-0.5">Manage registered users — approve, assign roles, award/deduct coins</p></div>
+        <button onclick="window.location.reload()" class="btn-sec btn-sm">↺ Refresh</button>
       </header>
-      <div class="p-4 sm:p-6 lg:p-8 flex-1">
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6">
-          <div class="flex flex-wrap gap-1 p-3 border-b border-gray-100">
-            <button onclick="filterUsers('')"       class="tab-btn active">All (<span id="usr-cnt-all">—</span>)</button>
-            <button onclick="filterUsers('active')" class="tab-btn">Active (<span id="usr-cnt-active">—</span>)</button>
-            <button onclick="filterUsers('pending')"class="tab-btn">Pending (<span id="usr-cnt-pending">—</span>)</button>
-            <button onclick="filterUsers('banned')" class="tab-btn">Banned (<span id="usr-cnt-banned">—</span>)</button>
-          </div>
-          <div class="p-3 flex items-center gap-3">
-            <input id="usr-search" type="search" placeholder="Search by name or email…"
-              class="flex-1 text-sm px-4 py-2.5 border border-gray-200 rounded-xl outline-none focus:border-indigo-400"/>
-            <span class="text-sm text-gray-400"><span id="usr-count">0</span> users</span>
-          </div>
+      <div class="p-4 sm:p-5 lg:p-8 space-y-4">
+        <!-- Stat cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div class="stat-card text-center"><p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Total</p><p id="ds-users" class="text-2xl font-bold text-gray-900">—</p></div>
+          <div class="stat-card text-center"><p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Active</p><p id="ds-users-active" class="text-2xl font-bold text-green-600">—</p></div>
+          <div class="stat-card text-center"><p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">⏳ Pending</p><p id="ds-users-pending" class="text-2xl font-bold text-amber-600">—</p></div>
+          <div class="stat-card text-center"><p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">⭐ Pro</p><p id="ds-users-pro" class="text-2xl font-bold text-amber-600">—</p></div>
+          <div class="stat-card text-center"><p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Banned</p><p id="ds-users-banned" class="text-2xl font-bold text-red-500">—</p></div>
         </div>
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="bg-gray-50 border-b border-gray-100">
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">User</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Role</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Coins</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Joined</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Saved</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="usr-tbody"></tbody>
-            </table>
-          </div>
+        <!-- Filter tabs -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <button class="usr-filter-btn filter-tab active" data-status="" onclick="setFilter(this,'')">All <span id="fc-all" class="ml-1.5 text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">0</span></button>
+          <button class="usr-filter-btn filter-tab" data-status="pending" onclick="setFilter(this,'pending')"><span class="w-2 h-2 rounded-full bg-amber-500 inline-block mr-1.5"></span>Pending <span id="fc-pending" class="ml-1.5 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">0</span></button>
+          <button class="usr-filter-btn filter-tab" data-status="active" onclick="setFilter(this,'active')"><span class="w-2 h-2 rounded-full bg-green-500 inline-block mr-1.5"></span>Active <span id="fc-active" class="ml-1.5 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">0</span></button>
+          <button class="usr-filter-btn filter-tab" data-status="banned" onclick="setFilter(this,'banned')"><span class="w-2 h-2 rounded-full bg-red-500 inline-block mr-1.5"></span>Banned <span id="fc-banned" class="ml-1.5 text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">0</span></button>
+        </div>
+        <!-- Table -->
+        <div class="card table-scroll">
+          <table class="tbl">
+            <thead><tr><th>User</th><th>Status</th><th>Role</th><th class="hidden sm:table-cell">Coins</th><th class="hidden md:table-cell">Joined</th><th class="hidden sm:table-cell">Saved</th><th class="w-36">Actions</th></tr></thead>
+            <tbody id="usr-tbody"></tbody>
+          </table>
         </div>
       </div>
     </main>
   </div>
 </div>
 
-<!-- Edit User Modal -->
-<div id="edit-user-modal" class="modal">
-  <div class="modal-box max-w-md w-full">
-    <h3 class="modal-title">Edit User</h3>
-    <div class="space-y-4">
-      <div><label class="modal-lbl">Display Name</label><input id="eu-name" type="text" class="modal-input" placeholder="Full name"/></div>
-      <div><label class="modal-lbl">Email (read-only)</label><input id="eu-email" type="email" class="modal-input bg-gray-50" readonly/></div>
-      <div class="grid grid-cols-2 gap-4">
-        <div><label class="modal-lbl">Role</label>
-          <select id="eu-role" class="modal-input">
-            <option value="guest">Guest</option><option value="regular">Regular</option><option value="pro">Pro ⭐</option><option value="admin">Admin</option>
-          </select>
-        </div>
-        <div><label class="modal-lbl">Status</label>
-          <select id="eu-status" class="modal-input">
-            <option value="active">Active</option><option value="pending">Pending</option><option value="banned">Banned</option>
-          </select>
-        </div>
-      </div>
-      <div><label class="modal-lbl">Coins (set directly)</label><input id="eu-coins" type="number" min="0" class="modal-input" placeholder="0"/></div>
+<!-- View User Modal -->
+<div id="modal-view-user" class="modal-wrap" style="display:none">
+  <div class="modal-box max-w-md my-4">
+    <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl">
+      <h2 class="text-lg font-bold text-gray-900">User Profile</h2>
+      <button onclick="pvCloseViewModal()" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
     </div>
-    <div class="modal-actions">
-      <button onclick="closeModal('edit-user-modal')" class="btn-sec">Cancel</button>
-      <button id="eu-save-btn" onclick="saveUserEdit()" class="btn-pr">Save Changes</button>
-    </div>
+    <div id="view-user-body" class="px-6 py-5 max-h-[80vh] overflow-y-auto"></div>
   </div>
 </div>
 
-<!-- Coins Modal -->
-<div id="coins-modal" class="modal">
-  <div class="modal-box max-w-sm w-full">
-    <h3 class="modal-title">Adjust Coins</h3>
-    <p class="text-sm text-gray-500 mb-4">User: <strong id="coins-user-name"></strong></p>
-    <div class="space-y-4">
-      <div><label class="modal-lbl">Operation</label>
-        <select id="coins-op" class="modal-input"><option value="add">Add coins</option><option value="deduct">Deduct coins</option></select>
-      </div>
-      <div><label class="modal-lbl">Amount</label><input id="coins-amount" type="number" min="1" class="modal-input" placeholder="e.g. 50"/></div>
-      <div><label class="modal-lbl">Reason (logged in history)</label><input id="coins-reason" type="text" class="modal-input" placeholder="e.g. Bonus reward"/></div>
-    </div>
-    <div class="modal-actions">
-      <button onclick="closeModal('coins-modal')" class="btn-sec">Cancel</button>
-      <button id="coins-save-btn" onclick="saveCoinsAdjust()" class="btn-pr">Apply</button>
-    </div>
-  </div>
-</div>
+<style>
+.filter-tab{display:inline-flex;align-items:center;padding:7px 14px;border-radius:100px;font-size:13px;font-weight:600;background:#fff;border:1.5px solid #e5e7eb;color:#6b7280;cursor:pointer;transition:all .15s;}
+.filter-tab:hover{border-color:#d1d5db;color:#374151;}
+.filter-tab.active{background:linear-gradient(135deg,#4f46e5,#7c3aed);border-color:transparent;color:#fff;}
+</style>
 
 <script type="module">
-import { guard } from "./js/guard.js";
-import { initSidebar } from "./js/sidebar.js";
-import { loadUsers, saveUserEdit, adjustCoins, saveCoinsAdjust, deleteUser } from "./js/users.js";
-import { closeModal } from "./js/ui.js";
+import { guardPage }    from "./js/guard.js";
+import { injectSidebar } from "./js/sidebar.js";
+import { loadUsers, getUserStats } from "./js/users.js";
 
-await guard();
-initSidebar("users");
-window.loadUsers = loadUsers;
-window.saveUserEdit = saveUserEdit;
-window.adjustCoins = adjustCoins;
-window.saveCoinsAdjust = saveCoinsAdjust;
-window.deleteUser = deleteUser;
-window.closeModal = closeModal;
-
-let currentFilter = "";
-window.filterUsers = function(f) {
-  currentFilter = f;
-  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-  event.currentTarget.classList.add("active");
-  loadUsers(f);
+window.setFilter = async (btn, status) => {
+  document.querySelectorAll(".usr-filter-btn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  await loadUsers(status);
 };
-loadUsers("");
 
-document.getElementById("usr-search").addEventListener("input", function() {
-  const q = this.value.toLowerCase();
-  document.querySelectorAll("#usr-tbody tr[data-uid]").forEach(tr => {
-    tr.style.display = tr.textContent.toLowerCase().includes(q) ? "" : "none";
-  });
+injectSidebar();
+guardPage(async () => {
+  const stats = await getUserStats();
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  set("ds-users",stats.total); set("ds-users-active",stats.active);
+  set("ds-users-pending",stats.pending); set("ds-users-pro",stats.pro);
+  set("ds-users-banned",stats.banned);
+  const badge=document.getElementById("users-pending-badge");
+  if(badge){badge.textContent=stats.pending;badge.style.display=stats.pending>0?"flex":"none";}
+  const urlFilter = new URLSearchParams(location.search).get("f")||"";
+  if(urlFilter){
+    document.querySelectorAll(".usr-filter-btn").forEach(b=>{b.classList.toggle("active",b.dataset.status===urlFilter);});
+  }
+  await loadUsers(urlFilter);
+  const cnt=document.getElementById("usr-count"),cntM=document.getElementById("usr-count-m");
+  if(cnt&&cntM){const obs=new MutationObserver(()=>cntM.textContent=cnt.textContent);obs.observe(cnt,{childList:true,characterData:true,subtree:true});}
 });
 </script>
 </body>

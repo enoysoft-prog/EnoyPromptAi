@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Coins & Plans · PromptVault Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="./css/style.css"/>
+</head>
+<body class="bg-gray-50">
+<div id="pv-loader"><div class="text-center"><div class="page-spinner mx-auto mb-3"></div><p class="text-white/70 text-sm">Checking session…</p></div></div>
+<div id="pv-body" class="invisible">
+  <div class="mobile-topbar lg:hidden">
+    <button class="btn-hamburger p-2 -ml-2 rounded-lg hover:bg-gray-100 text-gray-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    <span class="font-bold text-gray-900 text-sm">Coins & Plans</span>
+    <button id="btn-save-coin-cfg-mob" class="btn-pr btn-sm">Save</button>
+  </div>
+  <div class="flex min-h-screen lg:min-h-0">
+    <div id="sidebar-slot"></div>
+    <main class="flex-1 flex flex-col min-w-0">
+      <header class="hidden lg:flex bg-white border-b border-gray-100 px-8 py-4 items-center justify-between sticky top-0 z-10">
+        <div><h1 class="text-xl font-bold text-gray-900">Coins &amp; Plans</h1><p class="text-xs text-gray-400 mt-0.5">Configure coin rewards, pro plan pricing and referral bonuses</p></div>
+        <button id="btn-save-coin-cfg" class="btn-pr"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Save Settings</button>
+      </header>
+
+      <div id="coin-cfg-loading" class="flex-1 flex items-center justify-center p-8">
+        <div class="text-center"><div class="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-3"></div><p class="text-gray-400 text-sm">Loading…</p></div>
+      </div>
+
+      <form id="coin-cfg-form" class="hidden p-4 sm:p-5 lg:p-8 space-y-5 max-w-5xl" novalidate>
+
+        <!-- Earning coins -->
+        <div class="card p-5">
+          <h2 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">🪙 Coin Earning</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div><label class="lbl">Referral Reward (coins per referral)</label><input id="cc-referralReward" type="number" min="0" class="inp" placeholder="50"/><p class="text-xs text-gray-400 mt-1">Awarded when a referred user registers and gets approved</p></div>
+            <div><label class="lbl">Submission Approved Reward</label><input id="cc-submissionApproved" type="number" min="0" class="inp" placeholder="100"/><p class="text-xs text-gray-400 mt-1">Coins when a user's submitted prompt is approved</p></div>
+            <div><label class="lbl">Daily Login Bonus</label><input id="cc-dailyLoginBonus" type="number" min="0" class="inp" placeholder="5"/><p class="text-xs text-gray-400 mt-1">Coins for logging in each day</p></div>
+            <div><label class="lbl">Profile Complete Bonus (one-time)</label><input id="cc-profileCompleteBonus" type="number" min="0" class="inp" placeholder="30"/><p class="text-xs text-gray-400 mt-1">One-time reward for completing user profile</p></div>
+          </div>
+        </div>
+
+        <!-- Pro plans -->
+        <div class="card p-5">
+          <h2 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">⭐ Pro Plans</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div><label class="lbl">Pro Monthly (coins)</label><input id="cc-proMonthlyCoins" type="number" min="0" class="inp" placeholder="500"/><p class="text-xs text-gray-400 mt-1">Coin cost to upgrade to Pro for 30 days</p></div>
+            <div><label class="lbl">Pro Yearly (coins)</label><input id="cc-proYearlyCoins" type="number" min="0" class="inp" placeholder="4500"/><p class="text-xs text-gray-400 mt-1">Coin cost for 12-month Pro (offer discount here)</p></div>
+            <div class="sm:col-span-2"><label class="lbl">Pro Features Description</label><textarea id="cc-proFeatures" class="inp" rows="2" placeholder="No ads, all premium prompts, submit prompts, priority support…"></textarea></div>
+          </div>
+        </div>
+
+        <!-- Spending coins -->
+        <div class="card p-5">
+          <h2 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">💸 Coin Spending</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div><label class="lbl">Premium Unlock Cost</label><input id="cc-premiumUnlockCoins" type="number" min="0" class="inp" placeholder="20"/><p class="text-xs text-gray-400 mt-1">Coins to unlock one premium prompt</p></div>
+            <div><label class="lbl">Ad Removal Cost</label><input id="cc-adRemovalCoins" type="number" min="0" class="inp" placeholder="200"/><p class="text-xs text-gray-400 mt-1">Coins to remove ads</p></div>
+            <div><label class="lbl">Ad Removal Duration (days)</label><input id="cc-adRemovalDays" type="number" min="1" class="inp" placeholder="30"/><p class="text-xs text-gray-400 mt-1">How many days the ad removal lasts</p></div>
+          </div>
+        </div>
+
+        <!-- Manual coin award -->
+        <div class="card p-5">
+          <h2 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">⚡ Manual Coin Award</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
+            <div><label class="lbl">User ID (Firestore doc ID)</label><input id="award-user-id" class="inp font-mono text-xs" placeholder="Firebase UID…"/></div>
+            <div><label class="lbl">Amount (use - for deduction)</label><input id="award-amount" type="number" class="inp" placeholder="100 or -50"/></div>
+            <div><label class="lbl">Reason / Description</label><input id="award-desc" class="inp" placeholder="Bonus for feedback"/></div>
+          </div>
+          <button id="btn-award-coins" type="button" class="btn-pr btn-sm">⚡ Award / Deduct Coins</button>
+        </div>
+
+        <div class="flex gap-3 pb-8">
+          <button type="submit" class="btn-pr px-10 py-3">Save All Settings</button>
+        </div>
+      </form>
+
+      <!-- Transactions & Referrals -->
+      <div class="px-4 sm:px-5 lg:px-8 pb-8 space-y-5 max-w-5xl" id="tx-section" style="display:none">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div class="card p-5">
+            <h3 class="font-semibold text-gray-900 text-sm mb-4">Recent Transactions (last 50)</h3>
+            <div class="table-scroll">
+              <table class="tbl text-sm">
+                <thead><tr><th>User ID</th><th>Type</th><th>Amount</th><th class="hidden md:table-cell">Description</th><th class="hidden sm:table-cell">Date</th></tr></thead>
+                <tbody id="tx-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card p-5">
+            <h3 class="font-semibold text-gray-900 text-sm mb-4">Referral Stats</h3>
+            <div id="referral-stats"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script type="module">
+import { guardPage }     from "./js/guard.js";
+import { injectSidebar } from "./js/sidebar.js";
+import { loadCoinConfig, saveCoinConfig, loadTransactions, loadReferralStats, manualAwardCoins } from "./js/coins.js";
+
+injectSidebar();
+guardPage(async () => {
+  await loadCoinConfig();
+  document.getElementById("coin-cfg-form").addEventListener("submit", saveCoinConfig);
+  document.getElementById("btn-save-coin-cfg")?.addEventListener("click", e=>{e.preventDefault();saveCoinConfig(e);});
+  document.getElementById("btn-save-coin-cfg-mob")?.addEventListener("click", e=>{e.preventDefault();saveCoinConfig(e);});
+  document.getElementById("btn-award-coins")?.addEventListener("click", manualAwardCoins);
+
+  // Load transactions and referrals after form
+  const txSection = document.getElementById("tx-section");
+  if (txSection) txSection.style.display="block";
+  await Promise.all([loadTransactions(), loadReferralStats()]);
+});
+</script>
+</body>
+</html>

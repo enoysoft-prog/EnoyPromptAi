@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>My Profile — PromptVault</title>
+<meta name="robots" content="noindex"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="./css/style.css"/>
+</head>
+<body>
+
+<script type="module">
+import { auth }              from "./js/firebase.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+import { getUserProfile, isProUser, hasAdsRemoved } from "./js/auth.js";
+import { getAppConfig, getPromptById, cdnUrl, formatNum }  from "./js/db.js";
+import { getCoinHistory, toggleSavePrompt }        from "./js/coins.js";
+import { injectNav, injectFooter }                 from "./js/nav.js";
+import { toast, esc }                              from "./js/ui.js";
+import { doc, updateDoc, serverTimestamp }         from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+import { db }                                      from "./js/firebase.js";
+
+(async () => {
+  const cfg = await getAppConfig().catch(()=>({}));
+  injectNav(cfg);
+
+  onAuthStateChanged(auth, async user => {
+    if (!user) { window.location.replace("./auth.html?from=profile.html"); return; }
+    const profile = await getUserProfile(user.uid);
+    if (!profile) { window.location.replace("./auth.html"); return; }
+
+    renderProfile(profile, cfg);
+    renderStatusBanner(profile);
+    await renderSavedPrompts(profile);
+    await renderCoinHistory(user.uid);
+  });
+
+  injectFooter(cfg);
+})();
+
+function renderProfile(p, cfg) {
+  const initials = (p.displayName||p.email||"U").split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
+  const isPro    = isProUser(p);
+  const coins    = p.coins || 0;
+  const saved    = (p.savedPrompts||[]).length;
+  const proExp   = p.proExpiresAt?.seconds ? new Date(p.proExpiresAt.seconds*1000).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}) : null;
+
+  document.getElementById("profile-area").innerHTML = `
+  <div class="profile-header">
+    ${p.avatarUrl
+      ? `<img src="${esc(p.avatarUrl)}" class="profile-avatar-lg" alt="${esc(p.displayName||"User")}"/>`
+      : `<div class="profile-avatar-lg profile-avatar-initials-lg">${initials}</div>`}
+    <div style="flex:1;min-width:0;">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+        <h1 class="profile-name">${esc(p.displayName||"User")}</h1>
+        <span style="padding:3px 10px;border-radius:100px;font-size:12px;font-weight:700;
+          background:${isPro?"rgba(245,158,11,.3)":"rgba(255,255,255,.15)"};
+          color:${isPro?"#fcd34d":"rgba(255,255,255,.7)"};">${isPro?"⭐ Pro Member":"Regular"}</span>
+        <span style="padding:3px 10px;border-radius:100px;font-size:12px;font-weight:700;
+          background:${p.status==="active"?"rgba(52,211,153,.25)":"rgba(245,158,11,.25)"};
+          color:${p.status==="active"?"#6ee7b7":"#fcd34d"};">${p.status==="active"?"Active":"Pending Approval"}</span>
+      </div>
+      <p class="profile-email">${esc(p.email||"")}</p>
+      ${proExp?`<p style="font-size:12px;color:rgba(255,255,255,.55);margin-top:4px;">Pro until ${proExp}</p>`:""}
+      <div class="profile-stats">
+        <div class="profile-stat"><div class="profile-stat-num">${coins}</div><div class="profile-stat-label">🪙 Coins</div></div>
+        <div class="profile-stat"><div class="profile-stat-num">${saved}</div><div class="profile-stat-label">❤ Saved</div></div>
+        <div class="profile-stat"><div class="profile-stat-num">${p.referralCode||"—"}</div><div class="profile-stat-label">Referral Code</div></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;align-self:flex-start;flex-shrink:0;">
+      ${!isPro?`<a href="./pro.html" style="padding:10px 18px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border-radius:10px;font-size:13.5px;font-weight:700;text-align:center;text-decoration:none;">⭐ Upgrade to Pro</a>`:""}
+      <a href="./submit.html" style="padding:10px 18px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:10px;font-size:13.5px;font-weight:600;text-align:center;text-decoration:none;">📤 Submit Prompt</a>
+    </div>
+  </div>
+
+  <!-- Referral card -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:20px;">
+    <h2 style="font-size:1rem;font-weight:800;margin-bottom:12px;">👥 Your Referral Code</h2>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <code style="font-size:1.4rem;font-weight:900;letter-spacing:.1em;color:var(--accent);background:var(--surface2);padding:10px 20px;border-radius:12px;border:1.5px solid var(--border2);">${p.referralCode||"—"}</code>
+      <button onclick="copyReferral('${esc(p.referralCode||"")}','${esc(window.location.origin+"/auth.html?tab=register&ref=")}')" style="padding:10px 18px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border:none;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;">📋 Copy Link</button>
+    </div>
+    <p style="font-size:13px;color:var(--text2);margin-top:12px;">Share this code with friends. Both of you earn coins when they register and get approved.</p>
+  </div>
+
+  <!-- Profile edit -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:20px;">
+    <h2 style="font-size:1rem;font-weight:800;margin-bottom:14px;">✏️ Edit Profile</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+      <div><label style="font-size:12.5px;color:var(--text2);margin-bottom:4px;display:block;">Display Name</label>
+        <input id="edit-name" class="auth-input" value="${esc(p.displayName||"")}" placeholder="Your name"/></div>
+      <div><label style="font-size:12.5px;color:var(--text2);margin-bottom:4px;display:block;">Avatar URL</label>
+        <input id="edit-avatar" class="auth-input" value="${esc(p.avatarUrl||"")}" placeholder="https://…"/></div>
+    </div>
+    <div style="margin-bottom:14px;"><label style="font-size:12.5px;color:var(--text2);margin-bottom:4px;display:block;">Bio</label>
+      <textarea id="edit-bio" class="auth-input" rows="2" placeholder="Short bio…">${esc(p.bio||"")}</textarea></div>
+    <button id="save-profile-btn" onclick="saveProfile('${user?.uid}')" style="padding:10px 22px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border:none;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;">Save Profile</button>
+  </div>`;
+
+  window.copyReferral = (code, baseUrl) => {
+    const url = baseUrl + encodeURIComponent(code);
+    if (navigator.share) { navigator.share({ title:"Join PromptVault!", text:"Use my referral code for bonus coins!", url }); }
+    else { navigator.clipboard.writeText(url).then(()=>toast("Referral link copied ✓")); }
+  };
+
+  window.saveProfile = async (uid) => {
+    const name   = document.getElementById("edit-name")?.value.trim();
+    const avatar = document.getElementById("edit-avatar")?.value.trim();
+    const bio    = document.getElementById("edit-bio")?.value.trim();
+    const btn    = document.getElementById("save-profile-btn");
+    btn.textContent="Saving…"; btn.disabled=true;
+    try {
+      await updateDoc(doc(db,"users",uid), { displayName:name, avatarUrl:avatar, bio, updatedAt:serverTimestamp() });
+      toast("Profile updated ✓");
+    } catch(e){ toast("Failed: "+e.message,"error"); }
+    finally{ btn.textContent="Save Profile"; btn.disabled=false; }
+  };
+}
+
+function renderStatusBanner(p) {
+  const area = document.getElementById("status-banner");
+  if (!area) return;
+  if (p.status === "pending") {
+    area.innerHTML = `<div style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:14px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
+      <span style="font-size:1.5rem;">⏳</span>
+      <div><p style="font-weight:700;color:var(--amber);">Account Pending Approval</p>
+      <p style="font-size:13.5px;color:var(--text2);margin-top:2px;">You can browse free prompts. Full access unlocks once an admin approves your account.</p></div>
+    </div>`;
+  } else if (p.status === "banned") {
+    area.innerHTML = `<div style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:14px;padding:14px 18px;margin-bottom:20px;"><p style="font-weight:700;color:var(--red);">Account Suspended</p><p style="font-size:13.5px;color:var(--text2);margin-top:2px;">Contact support for assistance.</p></div>`;
+  }
+}
+
+async function renderSavedPrompts(profile) {
+  const el = document.getElementById("saved-list");
+  if (!el) return;
+  const ids = profile.savedPrompts || [];
+  if (!ids.length) { el.innerHTML=`<p style="color:var(--text2);font-size:14px;">No saved prompts yet. <a href="./prompts.html" style="color:var(--accent);">Browse prompts →</a></p>`; return; }
+  el.innerHTML=`<div class="space-y-2" style="display:flex;flex-direction:column;gap:10px;">${ids.slice(0,6).map(id=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;" id="saved-${id}">
+      <div style="flex:1;min-width:0;"><a href="./prompt.html?id=${id}" style="font-size:14px;font-weight:600;color:var(--text);" id="stitle-${id}">Loading…</a></div>
+      <button onclick="unsave('${id}')" style="padding:6px 12px;background:transparent;border:1.5px solid var(--border2);border-radius:8px;font-size:12px;color:var(--text2);cursor:pointer;flex-shrink:0;">✕ Remove</button>
+    </div>`).join("")}</div>`;
+  // Load titles
+  for (const id of ids.slice(0,6)) {
+    getPromptById(id).then(p=>{
+      const el=document.getElementById("stitle-"+id);
+      if(el&&p) el.textContent=p.title;
+    });
+  }
+}
+
+async function renderCoinHistory(uid) {
+  const el = document.getElementById("coin-history");
+  if (!el) return;
+  const txs = await getCoinHistory(uid, 15);
+  if (!txs.length) { el.innerHTML=`<p style="color:var(--text2);font-size:13.5px;">No transactions yet.</p>`; return; }
+  const TYPE_COLORS = { referral:"text-green-400",submission_approved:"text-green-400",admin_grant:"text-blue-400",pro_upgrade:"text-red-400",premium_unlock:"text-red-400",ad_removal:"text-red-400",daily_login:"text-blue-400" };
+  el.innerHTML=txs.map(tx=>{
+    const d=tx.createdAt?.seconds?new Date(tx.createdAt.seconds*1000).toLocaleDateString("en-GB",{day:"2-digit",month:"short"}):"—";
+    const col=tx.amount>=0?"style='color:#34d399'":"style='color:#f87171'";
+    return `<div style="display:flex;items-center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+      <div style="flex:1;min-width:0;"><p style="font-size:13.5px;font-weight:500;">${tx.description||tx.type||"—"}</p><p style="font-size:11.5px;color:var(--text3);margin-top:2px;">${d}</p></div>
+      <span ${col} style="font-size:14px;font-weight:700;flex-shrink:0;">${tx.amount>=0?"+":""}${tx.amount} 🪙</span>
+    </div>`;
+  }).join("");
+}
+
+window.unsave = async (promptId) => {
+  const user = auth.currentUser; if(!user) return;
+  try {
+    await toggleSavePrompt(user.uid, promptId);
+    document.getElementById("saved-"+promptId)?.remove();
+    toast("Removed from saved ✓");
+  } catch(e){ toast(e.message,"error"); }
+};
+</script>
+
+<main style="max-width:960px;margin:0 auto;padding:28px 20px 80px;">
+  <div id="status-banner"></div>
+  <div id="profile-area">
+    <!-- Loading skeleton -->
+    <div style="height:180px;background:linear-gradient(135deg,#1e1b4b,#3730a3);border-radius:24px;margin-bottom:20px;animation:sk-pulse 1.5s infinite;"></div>
+    <div style="height:100px;background:var(--surface);border:1px solid var(--border);border-radius:18px;margin-bottom:20px;animation:sk-pulse 1.5s infinite;"></div>
+  </div>
+
+  <!-- Tabs: Saved, Coins -->
+  <div style="display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:20px;max-width:400px;">
+    <button onclick="showTab('saved')" id="tab-saved" class="profile-tab active" style="flex:1;padding:8px;border:none;border-radius:9px;font-size:13.5px;font-weight:600;cursor:pointer;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;">❤ Saved Prompts</button>
+    <button onclick="showTab('coins')" id="tab-coins" class="profile-tab" style="flex:1;padding:8px;border:none;border-radius:9px;font-size:13.5px;font-weight:600;cursor:pointer;background:transparent;color:var(--text2);">🪙 Coin History</button>
+  </div>
+
+  <div id="saved-list" style="min-height:80px;"><div style="height:60px;background:var(--surface2);border-radius:12px;animation:sk-pulse 1.5s infinite;"></div></div>
+  <div id="coin-history" style="display:none;min-height:80px;"></div>
+</main>
+
+<script>
+window.showTab = (tab) => {
+  document.getElementById("saved-list").style.display = tab==="saved"?"block":"none";
+  document.getElementById("coin-history").style.display = tab==="coins"?"block":"none";
+  document.querySelectorAll(".profile-tab").forEach((b,i)=>{
+    const isActive = (i===0&&tab==="saved")||(i===1&&tab==="coins");
+    b.style.background = isActive?"linear-gradient(135deg,#4f46e5,#7c3aed)":"transparent";
+    b.style.color = isActive?"#fff":"var(--text2)";
+  });
+};
+</script>
+</body>
+</html>

@@ -4,7 +4,6 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>PromptVault Admin · Sign In</title>
-<meta name="robots" content="noindex,nofollow"/>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="./css/style.css"/>
 <style>body{min-height:100vh;background:linear-gradient(135deg,#1e1b4b 0%,#3730a3 60%,#4c1d95 100%);}</style>
@@ -27,20 +26,16 @@
     </div>
     <form id="login-form" novalidate>
       <div class="mb-4">
-        <label class="block text-sm font-semibold text-gray-700 mb-1.5" for="email">Email address</label>
-        <input id="email" type="email" placeholder="admin@example.com"
-          class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-sm transition"
-          autocomplete="email"/>
+        <label class="lbl" for="email">Email address</label>
+        <input id="email" type="email" placeholder="admin@example.com" class="inp" autocomplete="email"/>
         <p id="v-email" class="text-red-500 text-xs mt-1 hidden">Enter a valid email address.</p>
       </div>
       <div class="mb-6">
-        <label class="block text-sm font-semibold text-gray-700 mb-1.5" for="password">Password</label>
+        <label class="lbl" for="password">Password</label>
         <div class="relative">
-          <input id="password" type="password" placeholder="••••••••"
-            class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-sm transition pr-10"
-            autocomplete="current-password"/>
+          <input id="password" type="password" placeholder="••••••••" class="inp pr-10" autocomplete="current-password"/>
           <button type="button" id="toggle-pw"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition">
             <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
@@ -49,73 +44,55 @@
         </div>
         <p id="v-pw" class="text-red-500 text-xs mt-1 hidden">Password must be at least 6 characters.</p>
       </div>
-      <button type="submit" id="btn-login"
-        class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-bold text-base hover:opacity-90 transition disabled:opacity-50">
-        Sign In
-      </button>
+      <button type="submit" id="btn-login" class="btn-pr w-full justify-center py-3 text-base">Sign In</button>
     </form>
-    <p class="text-center text-xs text-gray-400 mt-5">Access restricted to authorized administrators only.</p>
+    <p class="text-center text-xs text-gray-400 mt-5">Access restricted to authorized administrators.</p>
   </div>
+  <p class="text-center text-indigo-400/60 text-xs mt-5">PromptVault v2.0 · ENOY SOFT</p>
 </div>
-
 <script type="module">
-import { auth, db } from "./js/firebase.js";
+import { auth } from "./js/firebase.js";
 import { signInWithEmailAndPassword, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
-import { doc, getDoc }
-  from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
-onAuthStateChanged(auth, async user => {
-  if (!user) return;
-  try {
-    const snap = await getDoc(doc(db,"users",user.uid));
-    if (snap.exists() && snap.data().role === "admin") {
-      window.location.replace("./dashboard.html");
-    } else {
-      await auth.signOut();
-    }
-  } catch {}
-});
-
-const form   = document.getElementById("login-form");
-const btnLog = document.getElementById("btn-login");
-const errBan = document.getElementById("err-banner");
-const errTxt = document.getElementById("err-text");
+onAuthStateChanged(auth, u => { if(u) window.location.replace("./dashboard.html"); });
 
 document.getElementById("toggle-pw").addEventListener("click", () => {
   const pw = document.getElementById("password");
   pw.type = pw.type === "password" ? "text" : "password";
 });
 
-function showErr(msg) { errTxt.textContent = msg; errBan.classList.remove("hidden"); }
-function hideErr()    { errBan.classList.add("hidden"); }
-
-form.addEventListener("submit", async e => {
-  e.preventDefault(); hideErr();
+document.getElementById("login-form").addEventListener("submit", async e => {
+  e.preventDefault();
   const email = document.getElementById("email").value.trim();
-  const pw    = document.getElementById("password").value;
-  if (!email) { document.getElementById("v-email").classList.remove("hidden"); return; }
-  if (pw.length < 6) { document.getElementById("v-pw").classList.remove("hidden"); return; }
-
-  btnLog.disabled = true; btnLog.textContent = "Signing in…";
+  const pass  = document.getElementById("password").value;
+  const banner= document.getElementById("err-banner");
+  const errTxt= document.getElementById("err-text");
+  const vEmail= document.getElementById("v-email");
+  const vPw   = document.getElementById("v-pw");
+  const btn   = document.getElementById("btn-login");
+  banner.classList.add("hidden"); vEmail.classList.add("hidden"); vPw.classList.add("hidden");
+  let ok = true;
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { vEmail.classList.remove("hidden"); ok=false; }
+  if (!pass || pass.length<6) { vPw.classList.remove("hidden"); ok=false; }
+  if (!ok) return;
+  btn.disabled=true;
+  btn.innerHTML=`<svg class="animate-spin inline w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>Signing in…`;
   try {
-    const cred = await signInWithEmailAndPassword(auth, email, pw);
-    const snap = await getDoc(doc(db,"users",cred.user.uid));
-    if (!snap.exists() || snap.data().role !== "admin") {
-      await auth.signOut();
-      showErr("Access denied. This account does not have admin privileges.");
-      return;
-    }
+    await signInWithEmailAndPassword(auth, email, pass);
     window.location.replace("./dashboard.html");
-  } catch (err) {
-    const map = {
-      "auth/user-not-found":     "No account found with this email.",
-      "auth/wrong-password":     "Incorrect password.",
-      "auth/invalid-credential": "Invalid email or password.",
-      "auth/too-many-requests":  "Too many attempts. Try again later.",
+  } catch(err) {
+    btn.disabled=false; btn.innerHTML="Sign In";
+    const map={
+      "auth/user-not-found":"No account found with this email.",
+      "auth/wrong-password":"Incorrect password. Please try again.",
+      "auth/invalid-email":"Please enter a valid email address.",
+      "auth/too-many-requests":"Too many attempts. Wait a moment.",
+      "auth/invalid-credential":"Incorrect email or password.",
+      "auth/network-request-failed":"Network error. Check your connection."
     };
-    showErr(map[err.code] || "Sign-in failed. Check your credentials.");
-    btnLog.disabled = false; btnLog.textContent = "Sign In";
+    errTxt.textContent=map[err.code]||err.message;
+    banner.classList.remove("hidden");
   }
 });
 </script>

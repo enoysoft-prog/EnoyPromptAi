@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI Prompt — PromptVault</title>
+<meta name="description" content="View and copy this AI prompt on PromptVault."/>
+<meta name="robots" content="index, follow"/>
+<link rel="canonical" href="https://YOUR_USERNAME.github.io/promptvault/prompt.html"/>
+<meta property="og:type" content="article"/>
+<meta property="og:title" content="AI Prompt — PromptVault"/>
+<meta property="og:description" content="View and copy this AI prompt on PromptVault."/>
+<meta property="og:image" content=""/>
+<meta name="twitter:card" content="summary_large_image"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="./css/style.css"/>
+</head>
+<body>
+
+<script type="module">
+import { getPromptById, getRelatedPrompts, getAppConfig, cdnUrl, formatNum, timeSince } from "./js/db.js";
+import { renderPromptCard, copyText, updateMeta, esc } from "./js/ui.js";
+import { injectNav, injectFooter } from "./js/nav.js";
+
+const id = new URLSearchParams(location.search).get("id");
+
+(async () => {
+  const cfg = await getAppConfig().catch(()=>({}));
+  injectNav(cfg);
+
+  if (!id) { show404(); injectFooter(cfg); return; }
+
+  const prompt = await getPromptById(id).catch(()=>null);
+  if (!prompt)  { show404(); injectFooter(cfg); return; }
+
+  renderDetail(prompt, cfg);
+
+  // Load related
+  const related = await getRelatedPrompts(prompt, 4).catch(()=>[]);
+  const relGrid = document.getElementById("related-grid");
+  if (relGrid) {
+    if (related.length) {
+      relGrid.innerHTML = related.map(p => renderPromptCard(p)).join("");
+      const relSection = document.getElementById("related-section");
+    if (relSection) relSection.style.display = "";
+    }
+  }
+
+  injectFooter(cfg);
+})();
+
+function renderDetail(p, cfg) {
+  const img     = cdnUrl(p.imageUrl, 1200) || `https://picsum.photos/seed/${p.id}/1200/630`;
+  const locked  = p.isPremium;
+  const catLabel = p.subcategoryName
+    ? `${esc(p.categoryName||"")} › ${esc(p.subcategoryName)}`
+    : esc(p.categoryName || p.category || "");
+  const storeUrl = cfg.playStoreUrl || "#";
+
+  // SEO meta update
+  updateMeta({
+    title:       p.title,
+    description: p.description || `${p.title} — AI prompt for ${p.tool||"any AI tool"}. Copy and use on PromptVault.`,
+    image:       img,
+    url:         window.location.href
+  });
+
+  // JSON-LD structured data
+  const schema = {
+    "@context":"https://schema.org","@type":"Article",
+    "headline": p.title,
+    "description": p.description || "",
+    "image": img,
+    "author":{"@type":"Organization","name":"ENOY SOFT"},
+    "publisher":{"@type":"Organization","name":"PromptVault"},
+    "datePublished": p.dateAdded || "",
+    "keywords": (p.tags||[]).join(", ")
+  };
+  const sd = document.createElement("script");
+  sd.type = "application/ld+json";
+  sd.textContent = JSON.stringify(schema);
+  document.head.appendChild(sd);
+
+  const main = document.getElementById("detail-main");
+  const isFree = !locked;
+
+  main.innerHTML = `
+  <!-- Breadcrumb -->
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="./index.html">Home</a>
+    <span aria-hidden="true">›</span>
+    <a href="./prompts.html">Prompts</a>
+    ${p.categoryId ? `<span aria-hidden="true">›</span><a href="./prompts.html?cat=${p.categoryId}">${esc(p.categoryName||"Category")}</a>` : ""}
+    ${p.subcategoryId ? `<span aria-hidden="true">›</span><a href="./prompts.html?cat=${p.categoryId}&subcat=${p.subcategoryId}">${esc(p.subcategoryName)}</a>` : ""}
+    <span aria-hidden="true">›</span>
+    <span>${esc(p.title)}</span>
+  </nav>
+
+  <!-- Hero image -->
+  <div class="detail-hero" role="img" aria-label="${esc(p.title)} preview image">
+    <img src="${img}" alt="${esc(p.title)}" loading="eager"
+         onerror="this.src='https://picsum.photos/seed/${p.id||"err"}/1200/630'"/>
+    <div class="detail-hero-overlay"></div>
+    <div class="detail-hero-badges">
+      ${p.isHot ? `<span class="badge badge-hot">🔥 Trending</span>` : ""}
+      ${locked   ? `<span class="badge badge-premium">👑 Premium</span>` : `<span class="badge badge-free">✓ Free</span>`}
+      ${p.tool   ? `<span class="tool-badge">${esc(p.tool)}</span>` : ""}
+    </div>
+  </div>
+
+  <div class="detail-grid">
+    <!-- Main column -->
+    <div class="detail-main">
+      ${catLabel ? `<p class="card-cat" style="font-size:13px;margin-bottom:10px;">${catLabel}</p>` : ""}
+      <h1 class="detail-title">${esc(p.title)}</h1>
+      ${p.description ? `<p class="detail-desc">${esc(p.description)}</p>` : ""}
+
+      <!-- Stats row -->
+      <div class="stats-row" aria-label="Prompt statistics">
+        ${p.tool ? `<div class="stat-item"><span>🛠</span><strong>${esc(p.tool)}</strong></div>` : ""}
+        ${p.likes ? `<div class="stat-item"><span>❤</span><strong>${formatNum(p.likes)}</strong></div>` : ""}
+        ${p.views ? `<div class="stat-item"><span>👁</span><strong>${formatNum(p.views)}</strong></div>` : ""}
+        ${p.dateAdded ? `<div class="stat-item"><span>📅</span><strong>${timeSince(p.dateAdded)}</strong></div>` : ""}
+      </div>
+
+      <!-- Prompt Box -->
+      <div class="prompt-box" aria-label="Prompt text">
+        <div class="prompt-box-header">
+          <span class="prompt-box-label">📋 PROMPT TEXT</span>
+          ${isFree
+            ? `<button class="btn-copy" id="copy-btn" onclick="doCopy()" aria-label="Copy prompt to clipboard">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>Copy Prompt
+               </button>`
+            : `<span class="badge badge-premium">Premium</span>`}
+        </div>
+        ${isFree
+          ? `<pre class="prompt-text" id="prompt-text-content" aria-label="Prompt content">${esc(p.fullText || "")}</pre>`
+          : `<div class="locked-box">
+              <div class="locked-icon">🔒</div>
+              <p class="locked-msg">This is a <strong>Premium</strong> prompt. Download the PromptVault app to unlock it by watching a short ad.</p>
+              <a href="${storeUrl}"  class="btn-unlock" aria-label="Download app to unlock">
+                <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M3.18 23.76c.37.21.8.22 1.18.04l12.18-6.83-2.61-2.62-10.75 9.41zM.32 1.36C.12 1.7 0 2.12 0 2.62v18.76c0 .5.12.92.32 1.26l.07.06 10.51-10.51v-.25L.39 1.3l-.07.06zM20.46 9.7l-2.93-1.65-2.93 2.93 2.93 2.93 2.94-1.65c.84-.47.84-1.09 0-1.56zM4.36.24L16.54 7.07l-2.61 2.62L3.18.28C3.56.1 3.99.1 4.36.28z"/>
+                </svg>
+                Unlock in the App — Free
+              </a>
+            </div>`}
+      </div>
+
+      <!-- Action buttons -->
+      <div class="action-row" role="group" aria-label="Prompt actions">
+        ${isFree
+          ? `<button class="btn-action btn-action-primary" onclick="doCopy()" aria-label="Copy prompt">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+              </svg>Copy Prompt
+             </button>`
+          : `<a href="${storeUrl}"  class="btn-action btn-action-primary" aria-label="Download app">
+              📱 Unlock in App
+             </a>`}
+        <button class="btn-action" onclick="doShare()" aria-label="Share this prompt">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+          </svg>Share
+        </button>
+      </div>
+
+      <!-- Tags -->
+      ${p.tags?.length ? `
+      <div>
+        <p style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Tags</p>
+        <div class="tags-wrap" aria-label="Prompt tags">
+          ${p.tags.map(t => `<a href="./prompts.html?q=${encodeURIComponent(t)}" class="tag">#${esc(t)}</a>`).join("")}
+        </div>
+      </div>` : ""}
+
+      <!-- Ad mid-content -->
+      <div class="ad-wrap">
+        <p class="ad-label">Advertisement</p>
+        <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+             data-ad-slot="8901234567" data-ad-format="auto" data-full-width-responsive="true"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});<\/script>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="detail-sidebar" aria-label="Sidebar">
+      <!-- App download card -->
+      <div class="sidebar-card" style="background:linear-gradient(135deg,#1e1b4b,#3730a3);border-color:transparent;">
+        <div style="text-align:center;padding:8px 0;">
+          <div style="font-size:2.5rem;margin-bottom:8px;">✨</div>
+          <h3 style="font-weight:800;color:#fff;font-size:15px;margin-bottom:6px;">Get the App</h3>
+          <p style="font-size:12.5px;color:rgba(255,255,255,.65);margin-bottom:16px;line-height:1.5;">
+            Browse 1000+ prompts, save favourites, unlock premium — all from your phone.
+          </p>
+          <a href="${storeUrl}" 
+            style="display:flex;align-items:center;justify-content:center;gap:8px;
+                   padding:11px 16px;background:#fff;color:#1e1b4b;border-radius:10px;
+                   font-size:13px;font-weight:800;" aria-label="Download PromptVault on Google Play">
+            <svg viewBox="0 0 24 24" fill="currentColor" style="width:15px;height:15px">
+              <path d="M3.18 23.76c.37.21.8.22 1.18.04l12.18-6.83-2.61-2.62-10.75 9.41zM.32 1.36C.12 1.7 0 2.12 0 2.62v18.76c0 .5.12.92.32 1.26l.07.06 10.51-10.51v-.25L.39 1.3l-.07.06zM20.46 9.7l-2.93-1.65-2.93 2.93 2.93 2.93 2.94-1.65c.84-.47.84-1.09 0-1.56zM4.36.24L16.54 7.07l-2.61 2.62L3.18.28C3.56.1 3.99.1 4.36.28z"/>
+            </svg>
+            Google Play — Free
+          </a>
+        </div>
+      </div>
+
+      <!-- Prompt info card -->
+      <div class="sidebar-card">
+        <p class="sidebar-card-title">Prompt Details</p>
+        <div style="display:flex;flex-direction:column;gap:12px;font-size:13.5px;">
+          ${p.tool ? `<div style="display:flex;justify-content:space-between;">
+            <span style="color:var(--text2);">AI Tool</span>
+            <span style="font-weight:600;">${esc(p.tool)}</span>
+          </div>` : ""}
+          ${p.categoryName ? `<div style="display:flex;justify-content:space-between;">
+            <span style="color:var(--text2);">Category</span>
+            <a href="./prompts.html?cat=${p.categoryId}" style="font-weight:600;color:var(--accent);">${esc(p.categoryName)}</a>
+          </div>` : ""}
+          ${p.subcategoryName ? `<div style="display:flex;justify-content:space-between;">
+            <span style="color:var(--text2);">Subcategory</span>
+            <a href="./prompts.html?cat=${p.categoryId}&subcat=${p.subcategoryId}" style="font-weight:600;color:var(--accent);">${esc(p.subcategoryName)}</a>
+          </div>` : ""}
+          <div style="display:flex;justify-content:space-between;">
+            <span style="color:var(--text2);">Type</span>
+            <span style="font-weight:600;">${locked?"👑 Premium":"✓ Free"}</span>
+          </div>
+          ${p.dateAdded ? `<div style="display:flex;justify-content:space-between;">
+            <span style="color:var(--text2);">Added</span>
+            <span style="font-weight:600;">${timeSince(p.dateAdded)}</span>
+          </div>` : ""}
+        </div>
+      </div>
+
+      <!-- Sidebar ad -->
+      <div class="ad-wrap">
+        <p class="ad-label">Advertisement</p>
+        <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+             data-ad-slot="9012345678" data-ad-format="auto" data-full-width-responsive="true"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});<\/script>
+      </div>
+    </aside>
+  </div>`;
+
+  // Wire up copy + share
+  window.doCopy = () => {
+    const text = p.fullText;
+    if (!text) return;
+    copyText(text);
+    const btn = document.getElementById("copy-btn");
+    if (btn) { btn.textContent = "✓ Copied!"; setTimeout(()=>btn.innerHTML=`<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>Copy Prompt`, 2000); }
+  };
+
+  window.doShare = () => {
+    if (navigator.share) {
+      navigator.share({ title: p.title, text: p.description||"", url: window.location.href });
+    } else {
+      copyText(window.location.href);
+    }
+  };
+}
+
+function show404() {
+  document.getElementById("detail-main").innerHTML = `
+    <div class="empty-state" style="padding:80px 20px;">
+      <div class="empty-state-icon">🔍</div>
+      <h1 style="font-size:22px;font-weight:900;margin-bottom:10px;">Prompt Not Found</h1>
+      <p style="color:var(--text2);margin-bottom:24px;">This prompt may have been removed or the URL is incorrect.</p>
+      <a href="./prompts.html" class="btn-primary">Browse All Prompts</a>
+    </div>`;
+}
+</script>
+
+<main>
+  <div style="max-width:1200px;margin:0 auto;padding:28px 20px 60px;">
+    <div id="detail-main">
+      <!-- Loading skeleton -->
+      <div style="height:360px;background:var(--surface);border-radius:22px;animation:sk-pulse 1.5s infinite;margin-bottom:28px;"></div>
+      <div style="height:28px;background:var(--surface2);border-radius:8px;width:60%;animation:sk-pulse 1.5s infinite;margin-bottom:12px;"></div>
+      <div style="height:18px;background:var(--surface2);border-radius:6px;width:80%;animation:sk-pulse 1.5s infinite;margin-bottom:8px;"></div>
+      <div style="height:18px;background:var(--surface2);border-radius:6px;width:70%;animation:sk-pulse 1.5s infinite;"></div>
+    </div>
+  </div>
+
+  <!-- Related Prompts -->
+  <section id="related-section" class="section" style="display:none" aria-labelledby="related-title">
+    <div class="section-header">
+      <h2 class="section-title" id="related-title">Related <span>Prompts</span></h2>
+    </div>
+    <div class="prompts-grid" id="related-grid" aria-label="Related prompts"></div>
+  </section>
+</main>
+
+</body>
+</html>

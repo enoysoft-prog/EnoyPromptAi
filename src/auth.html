@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Sign In / Register — PromptVault</title>
+<meta name="description" content="Sign in or create a free PromptVault account to save prompts, earn coins, and unlock premium content."/>
+<meta name="robots" content="noindex"/>
+<link rel="canonical" href="https://YOUR_DOMAIN/auth.html"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="./css/style.css"/>
+</head>
+<body>
+
+<script type="module">
+import { auth }                          from "./js/firebase.js";
+import { onAuthStateChanged }            from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+import { registerWithEmail, loginWithEmail, loginWithGoogle, resetPassword } from "./js/auth.js";
+import { getAppConfig }                  from "./js/db.js";
+import { injectNav, injectFooter }       from "./js/nav.js";
+import { toast }                         from "./js/ui.js";
+
+// Redirect if already logged in
+onAuthStateChanged(auth, u => { if(u) window.location.replace("./profile.html"); });
+
+const cfg = await getAppConfig().catch(()=>({}));
+injectNav(cfg);
+
+// Tabs
+const params = new URLSearchParams(location.search);
+let activeTab = params.get("tab") || "login";
+
+function setTab(tab) {
+  activeTab = tab;
+  ["login","register","forgot"].forEach(t => {
+    document.getElementById(`tab-${t}`)?.classList.toggle("active", t===tab);
+    document.getElementById(`form-${t}`)?.classList.toggle("hidden", t!==tab);
+  });
+  document.getElementById("auth-err")?.classList.add("hidden");
+}
+window.setTab = setTab;
+setTab(activeTab);
+
+// Error display
+function showErr(msg) {
+  const el=document.getElementById("auth-err");
+  if(el){ el.textContent=msg; el.classList.remove("hidden"); }
+}
+
+// Login
+document.getElementById("login-form")?.addEventListener("submit", async e => {
+  e.preventDefault();
+  const btn=document.getElementById("login-btn");
+  const email=document.getElementById("login-email").value.trim();
+  const pass=document.getElementById("login-pass").value;
+  if(!email||!pass){showErr("Please fill in all fields");return;}
+  btn.disabled=true; btn.textContent="Signing in…";
+  try {
+    await loginWithEmail(email, pass);
+    const redirect = params.get("from") || "./index.html";
+    window.location.replace(redirect);
+  } catch(err) {
+    const msgs={ "auth/user-not-found":"No account found with this email.",
+      "auth/wrong-password":"Incorrect password.","auth/invalid-credential":"Incorrect email or password.",
+      "auth/too-many-requests":"Too many attempts. Try again later.",
+      "auth/network-request-failed":"Network error. Check your connection." };
+    showErr(msgs[err.code]||err.message);
+    btn.disabled=false; btn.textContent="Sign In";
+  }
+});
+
+// Register
+document.getElementById("register-form")?.addEventListener("submit", async e => {
+  e.preventDefault();
+  const btn=document.getElementById("reg-btn");
+  const name=document.getElementById("reg-name").value.trim();
+  const email=document.getElementById("reg-email").value.trim();
+  const pass=document.getElementById("reg-pass").value;
+  const ref=document.getElementById("reg-referral").value.trim();
+  const terms=document.getElementById("reg-terms").checked;
+  if(!name||!email||!pass){showErr("Please fill in all fields");return;}
+  if(pass.length<6){showErr("Password must be at least 6 characters");return;}
+  if(!terms){showErr("You must agree to the Terms of Service");return;}
+  btn.disabled=true; btn.textContent="Creating account…";
+  try {
+    await registerWithEmail(email, pass, name, ref);
+    toast("Account created! ✓ Awaiting admin approval.");
+    setTimeout(()=>window.location.replace("./profile.html"),1200);
+  } catch(err) {
+    const msgs={"auth/email-already-in-use":"An account with this email already exists.","auth/invalid-email":"Invalid email address.","auth/weak-password":"Password is too weak."};
+    showErr(msgs[err.code]||err.message);
+    btn.disabled=false; btn.textContent="Create Account";
+  }
+});
+
+// Google login
+document.querySelectorAll(".btn-google").forEach(btn => {
+  btn.addEventListener("click", async () => {
+    try {
+      const ref = document.getElementById("reg-referral")?.value.trim()||"";
+      await loginWithGoogle(ref);
+      window.location.replace(params.get("from")||"./profile.html");
+    } catch(err) {
+      if(err.code!=="auth/popup-closed-by-user") showErr(err.message);
+    }
+  });
+});
+
+// Forgot password
+document.getElementById("forgot-form")?.addEventListener("submit", async e => {
+  e.preventDefault();
+  const email=document.getElementById("forgot-email").value.trim();
+  const btn=document.getElementById("forgot-btn");
+  if(!email){showErr("Enter your email address");return;}
+  btn.disabled=true; btn.textContent="Sending…";
+  try {
+    await resetPassword(email);
+    toast("Password reset email sent ✓");
+    setTab("login");
+  } catch(err){showErr(err.message);}
+  finally{btn.disabled=false;btn.textContent="Send Reset Link";}
+});
+</script>
+
+<main class="auth-wrap">
+  <div class="auth-card">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="width:52px;height:52px;background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin:0 auto 12px;">✨</div>
+      <h1 class="auth-title">PromptVault</h1>
+    </div>
+
+    <!-- Tab nav -->
+    <div style="display:flex;gap:4px;background:var(--surface2);border-radius:10px;padding:4px;margin-bottom:24px;">
+      <button class="auth-tab-btn active" id="tab-login" onclick="setTab('login')">Sign In</button>
+      <button class="auth-tab-btn" id="tab-register" onclick="setTab('register')">Register</button>
+    </div>
+
+    <!-- Error banner -->
+    <div id="auth-err" class="auth-err hidden"></div>
+
+    <!-- ── LOGIN FORM ── -->
+    <form id="form-login" novalidate>
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:5px;">Email</label>
+        <input id="login-email" type="email" class="auth-input" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div style="margin-bottom:6px;">
+        <label style="display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:5px;">Password</label>
+        <input id="login-pass" type="password" class="auth-input" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <div style="text-align:right;margin-bottom:18px;">
+        <button type="button" onclick="setTab('forgot')" class="auth-link" style="font-size:13px;">Forgot password?</button>
+      </div>
+      <button type="submit" id="login-btn" class="auth-btn">Sign In</button>
+      <div class="auth-divider">or</div>
+      <button type="button" class="btn-google">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Continue with Google
+      </button>
+      <p style="text-align:center;font-size:13px;color:var(--text3);margin-top:20px;">Don't have an account? <button type="button" onclick="setTab('register')" class="auth-link">Register free</button></p>
+    </form>
+
+    <!-- ── REGISTER FORM ── -->
+    <form id="form-register" class="hidden" novalidate>
+      <div style="margin-bottom:13px;">
+        <label style="display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:5px;">Full Name</label>
+        <input id="reg-name" type="text" class="auth-input" placeholder="Your name" autocomplete="name"/>
+      </div>
+      <div style="margin-bottom:13px;">
+        <label style="display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:5px;">Email</label>
+        <input id="reg-email" type="email" class="auth-input" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div style="margin-bottom:13px;">
+        <label style="display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:5px;">Password <span style="color:var(--text3);font-weight:400;">(min 6 chars)</span></label>
+        <input id="reg-pass" type="password" class="auth-input" placeholder="••••••••" autocomplete="new-password"/>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:5px;">Referral Code <span style="color:var(--text3);font-weight:400;">(optional)</span></label>
+        <input id="reg-referral" type="text" class="auth-input" placeholder="e.g. PVABCD12" autocomplete="off" style="text-transform:uppercase;"/>
+        <p style="font-size:11.5px;color:var(--text3);margin-top:4px;">Enter a friend's code to get bonus coins for both of you!</p>
+      </div>
+      <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:18px;cursor:pointer;">
+        <input id="reg-terms" type="checkbox" style="width:16px;height:16px;margin-top:2px;flex-shrink:0;accent-color:#4f46e5;"/>
+        <span style="font-size:12.5px;color:var(--text2);line-height:1.5;">I agree to the <a href="./terms.html" style="color:var(--accent);">Terms of Service</a> and <a href="./privacy.html" style="color:var(--accent);">Privacy Policy</a></span>
+      </label>
+      <button type="submit" id="reg-btn" class="auth-btn">Create Account</button>
+      <div class="auth-divider">or</div>
+      <button type="button" class="btn-google">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Continue with Google
+      </button>
+      <p style="text-align:center;font-size:13px;color:var(--text3);margin-top:20px;">Already have an account? <button type="button" onclick="setTab('login')" class="auth-link">Sign in</button></p>
+    </form>
+
+    <!-- ── FORGOT PASSWORD FORM ── -->
+    <form id="form-forgot" class="hidden" novalidate>
+      <p style="font-size:14px;color:var(--text2);margin-bottom:20px;line-height:1.6;">Enter your email address and we'll send you a link to reset your password.</p>
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:5px;">Email</label>
+        <input id="forgot-email" type="email" class="auth-input" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <button type="submit" id="forgot-btn" class="auth-btn">Send Reset Link</button>
+      <p style="text-align:center;font-size:13px;color:var(--text3);margin-top:16px;"><button type="button" onclick="setTab('login')" class="auth-link">← Back to Sign In</button></p>
+    </form>
+  </div>
+</main>
+
+<style>
+.auth-tab-btn{flex:1;padding:8px;border:none;border-radius:7px;font-size:13.5px;font-weight:600;cursor:pointer;background:transparent;color:var(--text2);transition:background .15s,color .15s;}
+.auth-tab-btn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.3);}
+</style>
+</body>
+</html>
