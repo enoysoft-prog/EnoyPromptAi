@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>App Config · PromptVault Admin</title>
+<meta name="robots" content="noindex,nofollow"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="./css/style.css"/>
+</head>
+<body class="bg-gray-50">
+<div id="pv-loader"><div class="text-center"><div class="page-spinner mx-auto mb-3"></div><p class="text-white/70 text-sm">Loading…</p></div></div>
+<div id="pv-body" class="invisible">
+  <div class="mobile-topbar lg:hidden">
+    <button class="btn-hamburger p-2 -ml-2 rounded-lg hover:bg-gray-100 text-gray-600">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <span class="font-bold text-gray-900 text-sm">App Config</span>
+    <div class="w-8"></div>
+  </div>
+  <div class="flex min-h-screen">
+    <div id="sidebar-slot"></div>
+    <main class="flex-1 flex flex-col min-w-0">
+      <header class="hidden lg:flex bg-white border-b border-gray-100 px-8 py-4 items-center justify-between sticky top-0 z-10">
+        <div><h1 class="text-xl font-bold text-gray-900">App Config</h1><p class="text-xs text-gray-400 mt-0.5">Global settings, coins, rewards &amp; ads</p></div>
+        <div class="flex gap-2">
+          <button onclick="resetConfig()" class="btn-sec btn-sm">Reset Defaults</button>
+          <button id="btn-save-cfg" onclick="saveConfig()" class="btn-pr btn-sm">Save Settings</button>
+        </div>
+      </header>
+
+      <div class="p-4 sm:p-6 lg:p-8 flex-1">
+        <div id="cfg-loading" class="text-center py-20 text-gray-400">Loading settings…</div>
+        <form id="cfg-form" class="hidden space-y-6" onsubmit="saveConfig(event)">
+
+          <!-- ── 🪙 Coin & Reward Settings ─────────────────── -->
+          <div class="bg-white rounded-2xl border-2 border-amber-200 shadow-sm p-6">
+            <h2 class="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">🪙 Coin &amp; Reward Settings</h2>
+            <p class="text-sm text-gray-500 mb-5">Control how users earn and spend coins across the platform.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label class="modal-lbl" for="cfg-referralCoinReward">Coins per Referral</label>
+                <input id="cfg-referralCoinReward" type="number" min="0" class="modal-input" placeholder="10"/>
+                <p class="text-xs text-gray-400 mt-1">Coins awarded to a user when their referral link is used to register.</p>
+              </div>
+              <div>
+                <label class="modal-lbl" for="cfg-proMembershipCost">Pro Upgrade Cost (coins)</label>
+                <input id="cfg-proMembershipCost" type="number" min="0" class="modal-input" placeholder="100"/>
+                <p class="text-xs text-gray-400 mt-1">Coins a regular user needs to spend to become Pro.</p>
+              </div>
+              <div>
+                <label class="modal-lbl" for="cfg-promptSubmissionReward">Prompt Approval Reward (coins)</label>
+                <input id="cfg-promptSubmissionReward" type="number" min="0" class="modal-input" placeholder="20"/>
+                <p class="text-xs text-gray-400 mt-1">Coins Pro users earn when their submitted prompt is approved.</p>
+              </div>
+              <div>
+                <label class="modal-lbl" for="cfg-adsRemoveCost">Remove Ads Cost (coins)</label>
+                <input id="cfg-adsRemoveCost" type="number" min="0" class="modal-input" placeholder="50"/>
+                <p class="text-xs text-gray-400 mt-1">Coins needed to permanently remove ads (for non-Pro users).</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── App Info ───────────────────────────────────── -->
+          <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <h2 class="text-base font-bold text-gray-900 mb-4">App Information</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div><label class="modal-lbl" for="cfg-appName">App Name</label><input id="cfg-appName" type="text" class="modal-input" placeholder="PromptVault"/></div>
+              <div><label class="modal-lbl" for="cfg-appTagline">Tagline</label><input id="cfg-appTagline" type="text" class="modal-input"/></div>
+              <div><label class="modal-lbl" for="cfg-appVersion">Version</label><input id="cfg-appVersion" type="text" class="modal-input" placeholder="2.0.0"/></div>
+              <div><label class="modal-lbl" for="cfg-contactEmail">Contact Email</label><input id="cfg-contactEmail" type="email" class="modal-input"/></div>
+              <div><label class="modal-lbl" for="cfg-siteUrl">Site URL</label><input id="cfg-siteUrl" type="url" class="modal-input" placeholder="https://your-site.com"/></div>
+              <div><label class="modal-lbl" for="cfg-playStoreUrl">Play Store URL</label><input id="cfg-playStoreUrl" type="url" class="modal-input"/></div>
+              <div><label class="modal-lbl" for="cfg-privacyPolicyUrl">Privacy Policy URL</label><input id="cfg-privacyPolicyUrl" type="url" class="modal-input"/></div>
+              <div><label class="modal-lbl" for="cfg-termsUrl">Terms of Service URL</label><input id="cfg-termsUrl" type="url" class="modal-input"/></div>
+            </div>
+          </div>
+
+          <!-- ── UI Text ────────────────────────────────────── -->
+          <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <h2 class="text-base font-bold text-gray-900 mb-4">UI Text</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div><label class="modal-lbl" for="cfg-homeHeading">Home Heading</label><input id="cfg-homeHeading" type="text" class="modal-input"/></div>
+              <div><label class="modal-lbl" for="cfg-searchPlaceholder">Search Placeholder</label><input id="cfg-searchPlaceholder" type="text" class="modal-input"/></div>
+              <div><label class="modal-lbl" for="cfg-homeTrendingLabel">Trending Section Label</label><input id="cfg-homeTrendingLabel" type="text" class="modal-input"/></div>
+              <div><label class="modal-lbl" for="cfg-homeFreshLabel">Fresh Section Label</label><input id="cfg-homeFreshLabel" type="text" class="modal-input"/></div>
+              <div class="sm:col-span-2"><label class="modal-lbl" for="cfg-unlockMessage">Premium Unlock Message</label><input id="cfg-unlockMessage" type="text" class="modal-input"/></div>
+            </div>
+          </div>
+
+          <!-- ── Feature Flags ──────────────────────────────── -->
+          <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <h2 class="text-base font-bold text-gray-900 mb-4">Feature Flags</h2>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <label class="flex items-center gap-2 cursor-pointer"><input id="cfg-premiumEnabled" type="checkbox" class="w-4 h-4 accent-indigo-600"/><span class="text-sm text-gray-700">Premium prompts</span></label>
+              <label class="flex items-center gap-2 cursor-pointer"><input id="cfg-adsEnabled" type="checkbox" class="w-4 h-4 accent-indigo-600"/><span class="text-sm text-gray-700">Ads enabled</span></label>
+              <label class="flex items-center gap-2 cursor-pointer"><input id="cfg-showHotBadge" type="checkbox" class="w-4 h-4 accent-indigo-600"/><span class="text-sm text-gray-700">Hot badge</span></label>
+              <label class="flex items-center gap-2 cursor-pointer"><input id="cfg-showBannerAds" type="checkbox" class="w-4 h-4 accent-indigo-600"/><span class="text-sm text-gray-700">Banner ads</span></label>
+              <label class="flex items-center gap-2 cursor-pointer"><input id="cfg-showInterstitialAds" type="checkbox" class="w-4 h-4 accent-indigo-600"/><span class="text-sm text-gray-700">Interstitial ads</span></label>
+              <label class="flex items-center gap-2 cursor-pointer"><input id="cfg-showRewardedAds" type="checkbox" class="w-4 h-4 accent-indigo-600"/><span class="text-sm text-gray-700">Rewarded ads</span></label>
+              <label class="flex items-center gap-2 cursor-pointer"><input id="cfg-showNativeAds" type="checkbox" class="w-4 h-4 accent-indigo-600"/><span class="text-sm text-gray-700">Native ads</span></label>
+              <label class="flex items-center gap-2 cursor-pointer"><input id="cfg-showAppOpenAds" type="checkbox" class="w-4 h-4 accent-indigo-600"/><span class="text-sm text-gray-700">App-open ads</span></label>
+            </div>
+          </div>
+
+          <!-- ── AdMob ───────────────────────────────────────── -->
+          <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <h2 class="text-base font-bold text-gray-900 mb-4">AdMob / AdSense IDs</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div><label class="modal-lbl" for="cfg-admobAppId">AdMob App ID</label><input id="cfg-admobAppId" type="text" class="modal-input font-mono text-xs"/></div>
+              <div><label class="modal-lbl" for="cfg-googleAdsenseId">Google AdSense ID</label><input id="cfg-googleAdsenseId" type="text" class="modal-input font-mono text-xs" placeholder="ca-pub-XXXXXXXXXXXXXXXX"/></div>
+              <div><label class="modal-lbl" for="cfg-admobBannerId">Banner Ad Unit ID</label><input id="cfg-admobBannerId" type="text" class="modal-input font-mono text-xs"/></div>
+              <div><label class="modal-lbl" for="cfg-admobInterstitialId">Interstitial Ad Unit ID</label><input id="cfg-admobInterstitialId" type="text" class="modal-input font-mono text-xs"/></div>
+              <div><label class="modal-lbl" for="cfg-admobRewardedId">Rewarded Ad Unit ID</label><input id="cfg-admobRewardedId" type="text" class="modal-input font-mono text-xs"/></div>
+              <div><label class="modal-lbl" for="cfg-admobNativeId">Native Ad Unit ID</label><input id="cfg-admobNativeId" type="text" class="modal-input font-mono text-xs"/></div>
+            </div>
+          </div>
+
+          <!-- ── About ──────────────────────────────────────── -->
+          <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <h2 class="text-base font-bold text-gray-900 mb-4">About Text</h2>
+            <textarea id="cfg-aboutText" rows="5" class="modal-input resize-y w-full"></textarea>
+          </div>
+
+          <!-- Save button -->
+          <div class="flex justify-end gap-3">
+            <button type="button" onclick="resetConfig()" class="btn-sec">Reset Defaults</button>
+            <button type="submit" id="btn-save-cfg" class="btn-pr px-8">Save All Settings</button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script type="module">
+import { guard }         from "./js/guard.js";
+import { initSidebar }   from "./js/sidebar.js";
+import { loadConfig, saveConfig, resetConfig } from "./js/config.js";
+
+await guard();
+initSidebar("config");
+window.saveConfig  = saveConfig;
+window.resetConfig = resetConfig;
+loadConfig();
+</script>
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Prompts · PromptVault Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="./css/style.css"/>
+</head>
+<body class="bg-gray-50">
+
+<div id="pv-loader"><div class="text-center">
+  <div class="page-spinner mx-auto mb-3"></div>
+  <p class="text-white/70 text-sm">Checking session…</p>
+</div></div>
+
+<div id="pv-body" class="invisible">
+  <div class="mobile-topbar lg:hidden">
+    <button class="btn-hamburger p-2 -ml-2 rounded-lg hover:bg-gray-100 text-gray-600">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+    </button>
+    <span class="font-bold text-gray-900 text-sm">Prompts</span>
+    <button id="btn-add-p-mob" class="btn-pr btn-sm">+ Add</button>
+  </div>
+
+  <div class="flex min-h-screen lg:min-h-0">
+    <div id="sidebar-slot"></div>
+    <main class="flex-1 flex flex-col min-w-0">
+
+      <header class="hidden lg:flex bg-white border-b border-gray-100 px-8 py-4 items-center justify-between sticky top-0 z-10">
+        <div>
+          <h1 class="text-xl font-bold text-gray-900">Prompts
+            <span id="p-count" class="ml-2 text-sm font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">—</span>
+          </h1>
+          <p class="text-xs text-gray-400 mt-0.5">Manage all AI prompts — categories loaded from Firestore</p>
+        </div>
+        <button id="btn-add-p" class="btn-pr">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>Add Prompt
+        </button>
+      </header>
+
+      <div class="p-4 sm:p-5 lg:p-8">
+        <div class="flex items-center justify-between mb-4 lg:hidden">
+          <h1 class="text-lg font-bold text-gray-900">Prompts
+            <span id="p-count-m" class="ml-1.5 text-sm font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">—</span>
+          </h1>
+        </div>
+        <div class="card table-scroll">
+          <table class="tbl">
+            <thead><tr>
+              <th>Prompt</th>
+              <th>Category</th>
+              <th class="hidden sm:table-cell">Tool</th>
+              <th>Type</th>
+              <th class="hidden md:table-cell">Description</th>
+              <th class="hidden lg:table-cell">Tags</th>
+              <th class="w-20">Actions</th>
+            </tr></thead>
+            <tbody id="p-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div id="modal-prompt" class="modal-wrap" style="display:none">
+  <div class="modal-box max-w-2xl my-4">
+    <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
+      <h2 id="pm-title" class="text-lg font-bold text-gray-900">Add Prompt</h2>
+      <button id="close-pm" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <form id="p-form" class="px-6 py-5 space-y-4" novalidate>
+
+      <!-- Title + Date -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="sm:col-span-2">
+          <label class="lbl">Title <span class="text-red-400">*</span></label>
+          <input id="f-title" class="inp" placeholder="Ethereal Forest Portrait"/>
+        </div>
+        <div>
+          <label class="lbl">Date Added</label>
+          <input id="f-date" type="date" class="inp"/>
+        </div>
+      </div>
+
+      <!-- Category (dynamic from Firestore) + Subcategory -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="lbl">Category
+            <span class="text-gray-400 font-normal text-xs ml-1">(from Firestore)</span>
+          </label>
+          <select id="f-category" class="inp">
+            <option value="">Loading categories…</option>
+          </select>
+        </div>
+        <div id="f-subcat-wrap" class="hidden">
+          <label class="lbl">Subcategory</label>
+          <select id="f-subcategory" class="inp">
+            <option value="">— No subcategory —</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tool -->
+      <div>
+        <label class="lbl">AI Tool</label>
+        <input id="f-tool" class="inp" placeholder="Midjourney, DALL·E 3, Claude…" list="tool-list"/>
+        <datalist id="tool-list">
+          <option value="Midjourney"/><option value="DALL·E 3"/>
+          <option value="Stable Diffusion"/><option value="Sora"/>
+          <option value="Claude"/><option value="GPT-4"/><option value="Runway ML"/>
+        </datalist>
+      </div>
+
+      <!-- Flags -->
+      <div class="flex flex-wrap items-center gap-5">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input id="f-premium" type="checkbox" class="w-4 h-4 rounded text-amber-600"/>
+          <span class="text-sm font-medium text-gray-700">Premium (requires ad unlock)</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input id="f-hot" type="checkbox" class="w-4 h-4 rounded text-red-500"/>
+          <span class="text-sm font-medium text-gray-700">🔥 Hot / Trending</span>
+        </label>
+      </div>
+
+      <!-- Description -->
+      <div>
+        <label class="lbl">Short Description</label>
+        <textarea id="f-description" class="inp" rows="2" placeholder="2-3 sentence summary shown on cards…"></textarea>
+      </div>
+
+      <!-- Full text -->
+      <div>
+        <label class="lbl">Full Prompt Text <span class="text-red-400">*</span></label>
+        <textarea id="f-fulltext" class="inp font-mono text-xs" rows="6"
+          placeholder="The complete AI prompt that users copy after unlocking…"></textarea>
+      </div>
+
+      <!-- Tags -->
+      <div>
+        <label class="lbl">Tags <span class="text-gray-400 font-normal text-xs ml-1">(comma-separated)</span></label>
+        <input id="f-tags" class="inp" placeholder="portrait, forest, ethereal, fantasy"/>
+      </div>
+
+      <!-- Image -->
+      <div>
+        <label class="lbl">Image</label>
+        <input id="f-imageurl" class="inp mb-2" placeholder="https://… paste URL, or upload below"/>
+        <p id="f-img-hint" class="text-xs text-amber-600 mb-2 hidden"></p>
+        <div class="dropzone" onclick="document.getElementById('f-image').click()">
+          <input id="f-image" type="file" accept="image/*" class="hidden"/>
+          <svg class="w-6 h-6 text-gray-400 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+          </svg>
+          <p class="text-sm text-gray-500">Click to upload to Cloudinary</p>
+          <p class="text-xs text-gray-400 mt-0.5">PNG, JPG, WebP — max 5MB</p>
+        </div>
+        <div id="f-uprog"></div>
+        <img id="f-img-preview" class="hidden mt-2 w-full h-40 object-cover rounded-xl border border-gray-200"/>
+      </div>
+    </form>
+    <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl sticky bottom-0">
+      <button id="close-pm2" class="btn-sec">Cancel</button>
+      <button id="btn-save-p" class="btn-pr">Save Prompt</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { guard }     from "./js/guard.js";
+import { initSidebar } from "./js/sidebar.js";
+import { loadPrompts, openAddPrompt, savePrompt } from "./js/prompts.js";
+import { closeModal, bindPreview } from "./js/ui.js";
+
+window.closeModal = closeModal;
+
+await guard();
+initSidebar();
+(async () => {
+  bindPreview("f-image","f-img-preview");
+  await loadPrompts();
+
+  // Sync count to mobile header
+  const cnt=document.getElementById("p-count");
+  const cntM=document.getElementById("p-count-m");
+  if(cnt&&cntM) { const obs=new MutationObserver(()=>cntM.textContent=cnt.textContent); obs.observe(cnt,{childList:true,characterData:true,subtree:true}); }
+
+  const addBtn   = document.getElementById("btn-add-p");
+  const addBtnM  = document.getElementById("btn-add-p-mob");
+  if (addBtn)  addBtn.addEventListener("click", openAddPrompt);
+  if (addBtnM) addBtnM.addEventListener("click", openAddPrompt);
+
+  document.getElementById("p-form").addEventListener("submit", savePrompt);
+  document.getElementById("btn-save-p").addEventListener("click", () =>
+    document.getElementById("p-form").dispatchEvent(new Event("submit",{cancelable:true,bubbles:true})));
+  document.getElementById("close-pm").addEventListener("click",  () => closeModal("modal-prompt"));
+  document.getElementById("close-pm2").addEventListener("click", () => closeModal("modal-prompt"));
+  document.getElementById("modal-prompt").addEventListener("click", e => {
+    if(e.target===e.currentTarget) closeModal("modal-prompt");
+  });
+
+  // URL input → preview
+  document.getElementById("f-imageurl").addEventListener("blur", e => {
+    const url=e.target.value.trim();
+    const prev=document.getElementById("f-img-preview");
+    if(url&&prev){prev.src=url;prev.classList.remove("hidden");}
+  });
+});
+</script>
+</body>
+</html>

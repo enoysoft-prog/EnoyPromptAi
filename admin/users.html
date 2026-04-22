@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Users · PromptVault Admin</title>
+<meta name="robots" content="noindex,nofollow"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="./css/style.css"/>
+</head>
+<body class="bg-gray-50">
+<div id="pv-loader"><div class="text-center"><div class="page-spinner mx-auto mb-3"></div><p class="text-white/70 text-sm">Checking session…</p></div></div>
+<div id="pv-body" class="invisible">
+  <div class="mobile-topbar lg:hidden">
+    <button class="btn-hamburger p-2 -ml-2 rounded-lg hover:bg-gray-100 text-gray-600">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <span class="font-bold text-gray-900 text-sm flex items-center gap-2">
+      <span class="w-6 h-6 bg-indigo-600 rounded-lg flex items-center justify-center text-white text-xs">✨</span>Users
+    </span>
+    <div class="w-8"></div>
+  </div>
+  <div class="flex min-h-screen">
+    <div id="sidebar-slot"></div>
+    <main class="flex-1 flex flex-col min-w-0">
+      <header class="hidden lg:flex bg-white border-b border-gray-100 px-8 py-4 items-center justify-between sticky top-0 z-10">
+        <div><h1 class="text-xl font-bold text-gray-900">Users</h1><p class="text-xs text-gray-400 mt-0.5">Manage accounts, roles &amp; coins</p></div>
+        <button onclick="loadUsers()" class="btn-sec btn-sm">↻ Refresh</button>
+      </header>
+      <div class="p-4 sm:p-6 lg:p-8 flex-1">
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6">
+          <div class="flex flex-wrap gap-1 p-3 border-b border-gray-100">
+            <button onclick="filterUsers('')"       class="tab-btn active">All (<span id="usr-cnt-all">—</span>)</button>
+            <button onclick="filterUsers('active')" class="tab-btn">Active (<span id="usr-cnt-active">—</span>)</button>
+            <button onclick="filterUsers('pending')"class="tab-btn">Pending (<span id="usr-cnt-pending">—</span>)</button>
+            <button onclick="filterUsers('banned')" class="tab-btn">Banned (<span id="usr-cnt-banned">—</span>)</button>
+          </div>
+          <div class="p-3 flex items-center gap-3">
+            <input id="usr-search" type="search" placeholder="Search by name or email…"
+              class="flex-1 text-sm px-4 py-2.5 border border-gray-200 rounded-xl outline-none focus:border-indigo-400"/>
+            <span class="text-sm text-gray-400"><span id="usr-count">0</span> users</span>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-gray-50 border-b border-gray-100">
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">User</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Role</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Coins</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Joined</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Saved</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="usr-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div id="edit-user-modal" class="modal">
+  <div class="modal-box max-w-md w-full">
+    <h3 class="modal-title">Edit User</h3>
+    <div class="space-y-4">
+      <div><label class="modal-lbl">Display Name</label><input id="eu-name" type="text" class="modal-input" placeholder="Full name"/></div>
+      <div><label class="modal-lbl">Email (read-only)</label><input id="eu-email" type="email" class="modal-input bg-gray-50" readonly/></div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="modal-lbl">Role</label>
+          <select id="eu-role" class="modal-input">
+            <option value="guest">Guest</option><option value="regular">Regular</option><option value="pro">Pro ⭐</option><option value="admin">Admin</option>
+          </select>
+        </div>
+        <div><label class="modal-lbl">Status</label>
+          <select id="eu-status" class="modal-input">
+            <option value="active">Active</option><option value="pending">Pending</option><option value="banned">Banned</option>
+          </select>
+        </div>
+      </div>
+      <div><label class="modal-lbl">Coins (set directly)</label><input id="eu-coins" type="number" min="0" class="modal-input" placeholder="0"/></div>
+    </div>
+    <div class="modal-actions">
+      <button onclick="closeModal('edit-user-modal')" class="btn-sec">Cancel</button>
+      <button id="eu-save-btn" onclick="saveUserEdit()" class="btn-pr">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Coins Modal -->
+<div id="coins-modal" class="modal">
+  <div class="modal-box max-w-sm w-full">
+    <h3 class="modal-title">Adjust Coins</h3>
+    <p class="text-sm text-gray-500 mb-4">User: <strong id="coins-user-name"></strong></p>
+    <div class="space-y-4">
+      <div><label class="modal-lbl">Operation</label>
+        <select id="coins-op" class="modal-input"><option value="add">Add coins</option><option value="deduct">Deduct coins</option></select>
+      </div>
+      <div><label class="modal-lbl">Amount</label><input id="coins-amount" type="number" min="1" class="modal-input" placeholder="e.g. 50"/></div>
+      <div><label class="modal-lbl">Reason (logged in history)</label><input id="coins-reason" type="text" class="modal-input" placeholder="e.g. Bonus reward"/></div>
+    </div>
+    <div class="modal-actions">
+      <button onclick="closeModal('coins-modal')" class="btn-sec">Cancel</button>
+      <button id="coins-save-btn" onclick="saveCoinsAdjust()" class="btn-pr">Apply</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { guard } from "./js/guard.js";
+import { initSidebar } from "./js/sidebar.js";
+import { loadUsers, saveUserEdit, adjustCoins, saveCoinsAdjust, deleteUser } from "./js/users.js";
+import { closeModal } from "./js/ui.js";
+
+await guard();
+initSidebar("users");
+window.loadUsers = loadUsers;
+window.saveUserEdit = saveUserEdit;
+window.adjustCoins = adjustCoins;
+window.saveCoinsAdjust = saveCoinsAdjust;
+window.deleteUser = deleteUser;
+window.closeModal = closeModal;
+
+let currentFilter = "";
+window.filterUsers = function(f) {
+  currentFilter = f;
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  event.currentTarget.classList.add("active");
+  loadUsers(f);
+};
+loadUsers("");
+
+document.getElementById("usr-search").addEventListener("input", function() {
+  const q = this.value.toLowerCase();
+  document.querySelectorAll("#usr-tbody tr[data-uid]").forEach(tr => {
+    tr.style.display = tr.textContent.toLowerCase().includes(q) ? "" : "none";
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI Tools · PromptVault Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="./css/style.css"/>
+</head>
+<body class="bg-gray-50">
+
+<div id="pv-loader"><div class="text-center">
+  <div class="page-spinner mx-auto mb-3"></div>
+  <p class="text-white/70 text-sm">Checking session…</p>
+</div></div>
+
+<div id="pv-body" class="invisible">
+  <div class="mobile-topbar lg:hidden">
+    <button class="btn-hamburger p-2 -ml-2 rounded-lg hover:bg-gray-100 text-gray-600">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+    </button>
+    <span class="font-bold text-gray-900 text-sm">AI Tools</span>
+    <button id="btn-add-tool-mob" class="btn-pr btn-sm">+ Add</button>
+  </div>
+
+  <div class="flex min-h-screen lg:min-h-0">
+    <div id="sidebar-slot"></div>
+    <main class="flex-1 flex flex-col min-w-0">
+      <header class="hidden lg:flex bg-white border-b border-gray-100 px-8 py-4 items-center justify-between sticky top-0 z-10">
+        <div>
+          <h1 class="text-xl font-bold text-gray-900">AI Tools
+            <span id="t-count" class="ml-2 text-sm font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">—</span>
+          </h1>
+          <p class="text-xs text-gray-400 mt-0.5">Manage AI tool badges shown on prompts</p>
+        </div>
+        <button id="btn-add-tool" class="btn-pr">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>Add Tool
+        </button>
+      </header>
+      <div class="p-4 sm:p-5 lg:p-8 space-y-4">
+        <div class="flex items-center justify-between lg:hidden">
+          <h1 class="text-lg font-bold text-gray-900">AI Tools <span id="t-count-m" class="ml-1.5 text-sm font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">—</span></h1>
+        </div>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 text-sm text-amber-700">
+          <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          Tool names must exactly match the <code class="bg-amber-100 px-1 rounded">tool</code> field in your prompts.
+        </div>
+        <div class="card table-scroll">
+          <table class="tbl">
+            <thead><tr>
+              <th>Tool</th>
+              <th class="hidden sm:table-cell">Description</th>
+              <th class="hidden md:table-cell">Website</th>
+              <th>Badge</th>
+              <th>Status</th>
+              <th class="w-20">Actions</th>
+            </tr></thead>
+            <tbody id="t-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-tool" class="modal-wrap" style="display:none">
+  <div class="modal-box max-w-md my-4">
+    <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+      <h2 id="tm-title" class="text-lg font-bold text-gray-900">Add AI Tool</h2>
+      <button id="close-tm" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <form id="tool-form" class="px-6 py-5 space-y-4" novalidate>
+      <div>
+        <label class="lbl">Tool Name <span class="text-red-400">*</span></label>
+        <input id="ft-name" class="inp" placeholder="Midjourney" oninput="pvToolPrev()"/>
+      </div>
+      <div>
+        <label class="lbl">Description</label>
+        <textarea id="ft-desc" class="inp" rows="2" placeholder="AI image generation tool…"></textarea>
+      </div>
+      <div>
+        <label class="lbl">Website URL</label>
+        <input id="ft-web" class="inp" type="url" placeholder="https://midjourney.com"/>
+      </div>
+      <div>
+        <label class="lbl">Badge Color</label>
+        <div class="flex items-center gap-4 mt-1">
+          <input id="ft-color" type="color" value="#6366f1"
+            class="h-10 w-14 cursor-pointer rounded-lg border border-gray-200 shrink-0"
+            oninput="pvToolPrev()"/>
+          <div>
+            <p class="text-xs text-gray-400 mb-1.5">Preview</p>
+            <div id="tool-prev" class="inline-flex items-center justify-center px-4 py-1.5 rounded-lg
+              text-white text-sm font-bold" style="background:#6366f1">Tool</div>
+          </div>
+        </div>
+      </div>
+      <label class="flex items-center gap-2.5 cursor-pointer">
+        <input id="ft-active" type="checkbox" checked class="w-4 h-4 rounded text-indigo-600"/>
+        <span class="text-sm font-medium text-gray-700">Active (visible in app)</span>
+      </label>
+    </form>
+    <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+      <button id="close-tm2" class="btn-sec">Cancel</button>
+      <button id="btn-save-tool" class="btn-pr">Save Tool</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { guard }                              from "./js/guard.js";
+import { initSidebar }                          from "./js/sidebar.js";
+import { loadTools, openAddTool, saveTool, updateToolPrev } from "./js/tools.js";
+import { closeModal } from "./js/ui.js";
+
+window.pvToolPrev = updateToolPrev;
+await guard();
+initSidebar();
+(async () => {
+  await loadTools();
+  const cnt=document.getElementById("t-count"), cntM=document.getElementById("t-count-m");
+  if(cnt&&cntM){const obs=new MutationObserver(()=>cntM.textContent=cnt.textContent);obs.observe(cnt,{childList:true,characterData:true,subtree:true});}
+  document.getElementById("btn-add-tool").addEventListener("click", openAddTool);
+  document.getElementById("btn-add-tool-mob")?.addEventListener("click", openAddTool);
+  document.getElementById("tool-form").addEventListener("submit", saveTool);
+  document.getElementById("btn-save-tool").addEventListener("click", () =>
+    document.getElementById("tool-form").dispatchEvent(new Event("submit",{cancelable:true,bubbles:true})));
+  ["close-tm","close-tm2"].forEach(id => document.getElementById(id)?.addEventListener("click", ()=>closeModal("modal-tool")));
+  document.getElementById("modal-tool").addEventListener("click", e=>{if(e.target===e.currentTarget)closeModal("modal-tool");});
+});
+</script>
+</body>
+</html>

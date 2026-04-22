@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Categories · PromptVault Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="./css/style.css"/>
+</head>
+<body class="bg-gray-50">
+
+<div id="pv-loader"><div class="text-center">
+  <div class="page-spinner mx-auto mb-3"></div>
+  <p class="text-white/70 text-sm">Checking session…</p>
+</div></div>
+
+<div id="pv-body" class="invisible">
+  <div class="mobile-topbar lg:hidden">
+    <button class="btn-hamburger p-2 -ml-2 rounded-lg hover:bg-gray-100 text-gray-600">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+    </button>
+    <span class="font-bold text-gray-900 text-sm">Categories</span>
+    <button id="btn-add-cat-mob" class="btn-pr btn-sm">+ Add</button>
+  </div>
+
+  <div class="flex min-h-screen lg:min-h-0">
+    <div id="sidebar-slot"></div>
+    <main class="flex-1 flex flex-col min-w-0">
+
+      <header class="hidden lg:flex bg-white border-b border-gray-100 px-8 py-4 items-center justify-between sticky top-0 z-10">
+        <div>
+          <h1 class="text-xl font-bold text-gray-900">Categories
+            <span id="cat-count" class="ml-2 text-sm font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">—</span>
+          </h1>
+          <p class="text-xs text-gray-400 mt-0.5">Manage categories and subcategories used in prompts and the Android app</p>
+        </div>
+        <button id="btn-add-cat" class="btn-pr">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>Add Category
+        </button>
+      </header>
+
+      <div class="p-4 sm:p-5 lg:p-8 space-y-4">
+
+        <div class="flex items-center justify-between lg:hidden">
+          <h1 class="text-lg font-bold text-gray-900">Categories
+            <span id="cat-count-m" class="ml-1.5 text-sm font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">—</span>
+          </h1>
+        </div>
+
+        <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex gap-3 text-sm text-indigo-700">
+          <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <span>Click <strong>N subs</strong> button to manage subcategories for any category. Subcategories appear in the prompt form automatically.</span>
+        </div>
+
+        <div class="card table-scroll">
+          <table class="tbl">
+            <thead><tr>
+              <th>Category</th>
+              <th class="hidden sm:table-cell">Emoji</th>
+              <th class="hidden md:table-cell">Gradient</th>
+              <th>Subcategories</th>
+              <th class="w-24">Actions</th>
+            </tr></thead>
+            <tbody id="cat-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ═══ ADD/EDIT CATEGORY MODAL ═══ -->
+<div id="modal-cat" class="modal-wrap" style="display:none">
+  <div class="modal-box max-w-lg my-4">
+    <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl">
+      <h2 id="cm-title" class="text-lg font-bold text-gray-900">Add Category</h2>
+      <button id="close-cm" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <form id="cat-form" class="px-6 py-5 space-y-4" novalidate>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="col-span-2 sm:col-span-1">
+          <label class="lbl">Name <span class="text-red-400">*</span></label>
+          <input id="fc-name" class="inp" placeholder="Image" oninput="pvGradLbl()"/>
+        </div>
+        <div>
+          <label class="lbl">Slug <span class="text-gray-400 text-xs font-normal">(auto)</span></label>
+          <input id="fc-slug" class="inp font-mono text-xs" placeholder="image"/>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="lbl">Emoji</label>
+          <input id="fc-emoji" class="inp text-center text-xl" placeholder="🎨" maxlength="4"/>
+        </div>
+        <div>
+          <label class="lbl">Display Order</label>
+          <input id="fc-order" type="number" min="0" class="inp" placeholder="0"/>
+        </div>
+      </div>
+      <div>
+        <label class="lbl">Category Image <span class="text-gray-400 text-xs font-normal">(optional)</span></label>
+        <div class="dropzone" onclick="document.getElementById('fc-image').click()">
+          <input id="fc-image" type="file" accept="image/*" class="hidden"/>
+          <svg class="w-5 h-5 text-gray-400 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+          </svg>
+          <p class="text-xs text-gray-500">Upload to Cloudinary</p>
+        </div>
+        <div id="cat-uprog"></div>
+        <img id="cat-img-prev" class="hidden mt-2 w-full h-24 object-cover rounded-xl border border-gray-200"/>
+      </div>
+      <div>
+        <label class="lbl">Gradient Colors</label>
+        <div class="grid grid-cols-2 gap-3 mt-1">
+          <div>
+            <p class="text-xs text-gray-400 mb-1.5">Start color</p>
+            <div class="flex items-center gap-2">
+              <input id="fc-gs" type="color" value="#3730A3"
+                class="h-9 w-12 cursor-pointer rounded-lg border border-gray-200 shrink-0"
+                oninput="pvGradPrev();document.getElementById('fc-gs-hex').value=this.value"/>
+              <input id="fc-gs-hex" class="inp flex-1 text-xs font-mono" placeholder="#3730A3"
+                oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)){document.getElementById('fc-gs').value=this.value;pvGradPrev();}"/>
+            </div>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400 mb-1.5">End color</p>
+            <div class="flex items-center gap-2">
+              <input id="fc-ge" type="color" value="#7C3AED"
+                class="h-9 w-12 cursor-pointer rounded-lg border border-gray-200 shrink-0"
+                oninput="pvGradPrev();document.getElementById('fc-ge-hex').value=this.value"/>
+              <input id="fc-ge-hex" class="inp flex-1 text-xs font-mono" placeholder="#7C3AED"
+                oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)){document.getElementById('fc-ge').value=this.value;pvGradPrev();}"/>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <label class="lbl">Preview</label>
+        <div id="grad-prev" class="h-16 rounded-xl flex items-center justify-center text-white font-bold"
+             style="background:linear-gradient(135deg,#3730A3,#7C3AED)">
+          <span id="grad-label">Category Name</span>
+        </div>
+      </div>
+    </form>
+    <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+      <button id="close-cm2" class="btn-sec">Cancel</button>
+      <button id="btn-save-cat" class="btn-pr">Save Category</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MANAGE SUBCATEGORIES MODAL ═══ -->
+<div id="modal-subs" class="modal-wrap" style="display:none">
+  <div class="modal-box max-w-md my-4">
+    <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl">
+      <div>
+        <h2 class="text-lg font-bold text-gray-900">Subcategories</h2>
+        <p class="text-xs text-gray-400 mt-0.5">Category: <strong id="sub-cat-name" class="text-gray-600"></strong></p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btn-add-sub" class="btn-pr btn-sm">+ Add</button>
+        <button id="close-subs" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div id="sub-list" class="min-h-[120px] max-h-[400px] overflow-y-auto">
+      <div class="text-center py-8 text-gray-400 text-sm">Loading…</div>
+    </div>
+    <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl text-xs text-gray-500">
+      Subcategories appear in the Prompt form when this category is selected.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ADD/EDIT SUBCATEGORY MODAL ═══ -->
+<div id="modal-sub" class="modal-wrap" style="display:none">
+  <div class="modal-box max-w-sm my-4">
+    <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+      <h2 id="sm-title" class="text-base font-bold text-gray-900">Add Subcategory</h2>
+      <button id="close-sm" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <form id="sub-form" class="px-6 py-5 space-y-4" novalidate>
+      <div>
+        <label class="lbl">Name <span class="text-red-400">*</span></label>
+        <input id="fs-name" class="inp" placeholder="Couple" oninput="
+          const slug=document.getElementById('fs-slug');
+          if(slug&&!slug.dataset.manual)
+            slug.value=this.value.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');"/>
+      </div>
+      <div>
+        <label class="lbl">Slug <span class="text-gray-400 text-xs font-normal">(auto)</span></label>
+        <input id="fs-slug" class="inp font-mono text-xs" placeholder="couple"
+          oninput="this.dataset.manual='1'"/>
+      </div>
+      <div>
+        <label class="lbl">Display Order</label>
+        <input id="fs-order" type="number" min="0" class="inp" placeholder="0"/>
+      </div>
+    </form>
+    <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+      <button id="close-sm2" class="btn-sec">Cancel</button>
+      <button id="btn-save-sub" class="btn-pr">Save</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { guard }       from "./js/guard.js";
+import { initSidebar }   from "./js/sidebar.js";
+import { loadCategories, openAddCat, saveCat, deleteCat,
+         openAddSub, saveSub, manageSubs, updateGradPrev } from "./js/categories.js";
+import { closeModal, bindPreview } from "./js/ui.js";
+
+window.pvGradPrev = updateGradPrev;
+window.pvGradLbl  = () => {
+  const lbl=document.getElementById("grad-label");
+  if(lbl) lbl.textContent=document.getElementById("fc-name")?.value||"Category Name";
+};
+
+await guard();
+initSidebar();
+(async () => {
+  bindPreview("fc-image","cat-img-prev");
+  await loadCategories();
+
+  // Sync mobile count
+  const cnt=document.getElementById("cat-count"), cntM=document.getElementById("cat-count-m");
+  if(cnt&&cntM){const obs=new MutationObserver(()=>cntM.textContent=cnt.textContent);obs.observe(cnt,{childList:true,characterData:true,subtree:true});}
+
+  // Category modal
+  document.getElementById("btn-add-cat").addEventListener("click", openAddCat);
+  document.getElementById("btn-add-cat-mob")?.addEventListener("click", openAddCat);
+  document.getElementById("cat-form").addEventListener("submit", saveCat);
+  document.getElementById("btn-save-cat").addEventListener("click", () =>
+    document.getElementById("cat-form").dispatchEvent(new Event("submit",{cancelable:true,bubbles:true})));
+  ["close-cm","close-cm2"].forEach(id => document.getElementById(id)?.addEventListener("click", ()=>closeModal("modal-cat")));
+  document.getElementById("modal-cat").addEventListener("click", e=>{if(e.target===e.currentTarget)closeModal("modal-cat");});
+
+  // Subcategories modal
+  document.getElementById("close-subs").addEventListener("click", ()=>closeModal("modal-subs"));
+  document.getElementById("modal-subs").addEventListener("click", e=>{if(e.target===e.currentTarget)closeModal("modal-subs");});
+  document.getElementById("btn-add-sub").addEventListener("click", openAddSub);
+
+  // Subcategory form modal
+  document.getElementById("sub-form").addEventListener("submit", saveSub);
+  document.getElementById("btn-save-sub").addEventListener("click", () =>
+    document.getElementById("sub-form").dispatchEvent(new Event("submit",{cancelable:true,bubbles:true})));
+  ["close-sm","close-sm2"].forEach(id => document.getElementById(id)?.addEventListener("click", ()=>closeModal("modal-sub")));
+  document.getElementById("modal-sub").addEventListener("click", e=>{if(e.target===e.currentTarget)closeModal("modal-sub");});
+});
+</script>
+</body>
+</html>

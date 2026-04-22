@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Submissions · PromptVault Admin</title>
+<meta name="robots" content="noindex,nofollow"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="./css/style.css"/>
+</head>
+<body class="bg-gray-50">
+<div id="pv-loader"><div class="text-center"><div class="page-spinner mx-auto mb-3"></div><p class="text-white/70 text-sm">Loading…</p></div></div>
+<div id="pv-body" class="invisible">
+  <div class="mobile-topbar lg:hidden">
+    <button class="btn-hamburger p-2 -ml-2 rounded-lg hover:bg-gray-100 text-gray-600">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <span class="font-bold text-gray-900 text-sm">Submissions</span>
+    <div class="w-8"></div>
+  </div>
+  <div class="flex min-h-screen">
+    <div id="sidebar-slot"></div>
+    <main class="flex-1 flex flex-col min-w-0">
+      <header class="hidden lg:flex bg-white border-b border-gray-100 px-8 py-4 items-center justify-between sticky top-0 z-10">
+        <div>
+          <h1 class="text-xl font-bold text-gray-900">User Submissions</h1>
+          <p class="text-xs text-gray-400 mt-0.5">Review, approve or reject submitted prompts</p>
+        </div>
+        <button onclick="loadSubmissions(currentFilter)" class="btn-sec btn-sm">↻ Refresh</button>
+      </header>
+      <div class="p-4 sm:p-6 lg:p-8 flex-1">
+
+        <!-- Info card -->
+        <div class="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl p-4 mb-6 flex items-start gap-3">
+          <span class="text-2xl">📝</span>
+          <div>
+            <p class="font-semibold text-indigo-900 text-sm">Pro users can submit prompts for review</p>
+            <p class="text-xs text-indigo-600 mt-0.5">When approved, the prompt goes live and the author earns coins automatically (set in App Config).</p>
+          </div>
+        </div>
+
+        <!-- Filter tabs -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6">
+          <div class="flex flex-wrap gap-1 p-3">
+            <button onclick="setFilter('pending')"  class="tab-btn active">Pending (<span id="cnt-pending">—</span>)</button>
+            <button onclick="setFilter('approved')" class="tab-btn">Approved (<span id="cnt-approved">—</span>)</button>
+            <button onclick="setFilter('rejected')" class="tab-btn">Rejected (<span id="cnt-rejected">—</span>)</button>
+            <button onclick="setFilter('')"          class="tab-btn">All (<span id="sub-count">—</span>)</button>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-gray-50 border-b border-gray-100">
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Title / Tool</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Preview</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Author</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="sub-tbody">
+                <tr><td colspan="6" class="text-center py-16 text-gray-400 text-sm">Loading submissions…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- View / Review Modal -->
+<div id="view-sub-modal" class="modal">
+  <div class="modal-box max-w-2xl w-full">
+    <h3 class="modal-title">Review Submission</h3>
+    <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-semibold text-gray-400 uppercase mb-1">Title</p>
+          <p id="view-sub-title" class="text-sm font-bold text-gray-900"></p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-gray-400 uppercase mb-1">AI Tool</p>
+          <p id="view-sub-tool" class="text-sm text-gray-700"></p>
+        </div>
+      </div>
+      <div>
+        <p class="text-xs font-semibold text-gray-400 uppercase mb-1">Tags</p>
+        <p id="view-sub-tags" class="text-sm text-gray-600"></p>
+      </div>
+      <div>
+        <p class="text-xs font-semibold text-gray-400 uppercase mb-1">Description</p>
+        <p id="view-sub-desc" class="text-sm text-gray-600"></p>
+      </div>
+      <div>
+        <p class="text-xs font-semibold text-gray-400 uppercase mb-1">Prompt Content</p>
+        <pre id="view-sub-content" class="text-sm text-gray-800 bg-gray-50 rounded-xl p-4 whitespace-pre-wrap font-mono border border-gray-200"></pre>
+      </div>
+      <div>
+        <p class="text-xs font-semibold text-gray-400 uppercase mb-1">Submitted by</p>
+        <p id="view-sub-by" class="text-sm text-gray-600"></p>
+      </div>
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
+        ⚡ Approving will publish this prompt live and award the author <strong id="view-reward">20</strong> coins.
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button onclick="closeModal('view-sub-modal')" class="btn-sec">Close</button>
+      <button id="view-reject-btn" onclick="rejectSubmission(document.getElementById('view-sub-modal').dataset.sid)"
+        class="px-4 py-2 bg-red-100 text-red-700 rounded-xl text-sm font-semibold hover:bg-red-200 transition">Reject</button>
+      <button id="view-approve-btn" onclick="approveSubmission(document.getElementById('view-sub-modal').dataset.sid)"
+        class="btn-pr">✓ Approve &amp; Award Coins</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { guard }     from "./js/guard.js";
+import { initSidebar } from "./js/sidebar.js";
+import { loadSubmissions, viewSubmission, approveSubmission, rejectSubmission } from "./js/submissions.js";
+import { closeModal } from "./js/ui.js";
+import { db } from "./js/firebase.js";
+import { getDoc, doc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+await guard();
+initSidebar("submissions");
+
+window.closeModal        = closeModal;
+window.viewSubmission    = viewSubmission;
+window.approveSubmission = approveSubmission;
+window.rejectSubmission  = rejectSubmission;
+window.loadSubmissions   = loadSubmissions;
+
+let currentFilter = "pending";
+window.currentFilter = currentFilter;
+
+window.setFilter = function(f) {
+  currentFilter = f;
+  window.currentFilter = f;
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  event.currentTarget.classList.add("active");
+  loadSubmissions(f);
+};
+
+// Load coin reward amount from config
+try {
+  const snap = await getDoc(doc(db,"config","app"));
+  const reward = snap.exists() ? (snap.data().promptSubmissionReward || 20) : 20;
+  document.getElementById("view-reward").textContent = reward;
+} catch {}
+
+// Load counts for all tabs
+async function loadCounts() {
+  const { getDocs, collection, query, where } = await import("https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js");
+  const all = await getDocs(collection(db,"submissions"));
+  const docs = all.docs.map(d => d.data());
+  document.getElementById("cnt-pending").textContent  = docs.filter(d=>d.status==="pending").length;
+  document.getElementById("cnt-approved").textContent = docs.filter(d=>d.status==="approved").length;
+  document.getElementById("cnt-rejected").textContent = docs.filter(d=>d.status==="rejected").length;
+  document.getElementById("sub-count").textContent    = docs.length;
+}
+loadCounts();
+loadSubmissions("pending");
+</script>
+</body>
+</html>
