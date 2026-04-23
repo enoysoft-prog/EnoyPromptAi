@@ -1,58 +1,55 @@
-// js/guard.js — Fixed: handles slow auth, network issues, proper loader removal
-import { auth }               from "./firebase.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+// admin/js/guard.js — Auth guard: checks Firebase login AND admin role in Firestore
+import { auth } from "./firebase.js";
+import { db }   from "./firebase.js";
+import { onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+import { doc, getDoc }
+  from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
-export function guardPage(onAuthed) {
-  let resolved = false;
+/**
+ * Awaitable guard.
+ * - Redirects to ./index.html if not logged in or not admin.
+ * - Resolves once auth confirmed, so pages can `await guard()` before init.
+ */
+export function guard() {
+  return new Promise((resolve, reject) => {
+    let settled = false;
 
-  // Safety timeout — if Firebase takes >8s, redirect to login
-  const timeout = setTimeout(() => {
-    if (!resolved) {
-      resolved = true;
-      window.location.replace("./index.html");
-    }
-  }, 8000);
+    // Hard timeout — Firebase shouldn't take longer than 8 s
+    const timer = setTimeout(() => {
+      if (!settled) { settled = true; window.location.replace("./index.html"); }
+    }, 8000);
 
-  onAuthStateChanged(auth, (user) => {
-    if (resolved) return;
-    resolved = true;
-    clearTimeout(timeout);
+    onAuthStateChanged(auth, async (user) => {
+      if (settled) return;
 
-    if (!user) {
-      window.location.replace("./index.html");
-      return;
-    }
+      if (!user) {
+        settled = true;
+        clearTimeout(timer);
+        window.location.replace("./index.html");
+        return;
+      }
 
-    // Remove loader
-    const loader = document.getElementById("pv-loader");
-    if (loader) {
-      loader.style.opacity = "0";
-      loader.style.transition = "opacity 0.3s";
-      setTimeout(() => loader.remove(), 300);
-    }
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (!snap.exists() || snap.data().role !== "admin") {
+          settled = true;
+          clearTimeout(timer);
+          await auth.signOut();
+          window.location.replace("./index.html");
+          return;
+        }
+      } catch {
+        // Firestore unreachable — fail safely
+        settled = true;
+        clearTimeout(timer);
+        window.location.replace("./index.html");
+        return;
+      }
 
-    // Show page body
-    const body = document.getElementById("pv-body");
-    if (body) {
-      body.classList.remove("invisible");
-      body.style.opacity = "0";
-      body.style.transition = "opacity 0.3s";
-      requestAnimationFrame(() => { body.style.opacity = "1"; });
-    }
-
-    // Populate user info
-    const emailEl    = document.getElementById("sb-email");
-    const initialsEl = document.getElementById("sb-initials");
-    if (emailEl)    emailEl.textContent    = user.email;
-    if (initialsEl) initialsEl.textContent = user.email.charAt(0).toUpperCase();
-
-    if (typeof onAuthed === "function") onAuthed(user);
-  }, (error) => {
-    // Auth error — go to login
-    if (!resolved) {
-      resolved = true;
-      clearTimeout(timeout);
-      window.location.replace("./index.html");
-    }
+      settled = true;
+      clearTimeout(timer);
+      resolve(user);
+    });
   });
 }

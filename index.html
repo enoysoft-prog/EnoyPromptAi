@@ -3,78 +3,81 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>PromptVault — Discover the Best AI Prompts for Midjourney, DALL·E, ChatGPT & More</title>
+<title>PromptVault — Discover the Best AI Prompts for Midjourney, ChatGPT & More</title>
 <meta name="description" content="PromptVault is your ultimate AI prompt library. Browse curated prompts for Midjourney, DALL·E 3, Stable Diffusion, ChatGPT, Claude, Sora and more. Free &amp; Premium."/>
 <meta name="keywords" content="AI prompts, Midjourney prompts, DALL-E prompts, ChatGPT prompts, Stable Diffusion prompts, prompt library"/>
 <meta name="robots" content="index, follow"/>
-<link rel="canonical" href="https://YOUR_USERNAME.github.io/promptvault/"/>
-<meta property="og:type" content="website"/>
-<meta property="og:title" content="PromptVault — Best AI Prompts Library"/>
+<link rel="canonical" href="https://YOUR_DOMAIN.com/"/>
+<meta property="og:type"        content="website"/>
+<meta property="og:title"       content="PromptVault — Best AI Prompts Library"/>
 <meta property="og:description" content="Browse curated AI prompts for Midjourney, DALL·E 3, ChatGPT, Claude and more."/>
-<meta property="og:url" content="https://YOUR_USERNAME.github.io/promptvault/"/>
-<meta property="og:image" content="https://YOUR_USERNAME.github.io/promptvault/img/og-image.jpg"/>
-<meta property="og:site_name" content="PromptVault"/>
-<meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="PromptVault — Best AI Prompts Library"/>
-<meta name="twitter:description" content="Browse curated AI prompts for Midjourney, DALL·E 3, ChatGPT, Claude and more."/>
-<meta name="twitter:image" content="https://YOUR_USERNAME.github.io/promptvault/img/og-image.jpg"/>
+<meta property="og:url"         content="https://YOUR_DOMAIN.com/"/>
+<meta name="twitter:card"       content="summary_large_image"/>
+<meta name="twitter:title"      content="PromptVault — Best AI Prompts Library"/>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebSite","name":"PromptVault",
  "description":"The best AI prompt library for Midjourney, DALL·E 3, ChatGPT, Claude and more.",
- "url":"https://YOUR_USERNAME.github.io/promptvault/",
- "publisher":{"@type":"Organization","name":"ENOY SOFT","email":"enoysoft@gmail.com"},
- "potentialAction":{"@type":"SearchAction","target":"https://YOUR_USERNAME.github.io/promptvault/prompts.html?q={search_term_string}","query-input":"required name=search_term_string"}}
+ "url":"https://YOUR_DOMAIN.com/",
+ "potentialAction":{"@type":"SearchAction","target":"https://YOUR_DOMAIN.com/prompts.html?q={search_term_string}","query-input":"required name=search_term_string"}}
 </script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="./css/style.css"/>
 </head>
 <body>
 
 <script type="module">
-import { getCategories, getTrendingPrompts, getPrompts, getAppConfig,
-         getLiveStats, getCategoryStats, formatNum } from "./js/db.js";
+import { getCategories, getTrendingPrompts, getFreshPrompts, getAppConfig,
+         getLiveStats, getCategoryStats } from "./js/db.js";
 import { renderPromptCard, renderCategoryCard, skeletonCards, initAppBanner } from "./js/ui.js";
 import { injectNav, injectFooter } from "./js/nav.js";
 
 (async () => {
-  const cfg = await getAppConfig().catch(()=>({}));
+  const cfg = await getAppConfig().catch(() => ({}));
   injectNav(cfg);
   initAppBanner(cfg);
 
-  // Wire hero search
-  document.getElementById("hero-search-btn")?.addEventListener("click", goSearch);
-  document.getElementById("hero-search")?.addEventListener("keydown", e => { if(e.key==="Enter") goSearch(); });
+  // Hero search
+  const heroSearch = document.getElementById("hero-search");
+  const heroBtn    = document.getElementById("hero-search-btn");
   function goSearch() {
-    const q = document.getElementById("hero-search")?.value.trim();
-    if (q) window.location.href = `./prompts.html?q=${encodeURIComponent(q)}`;
-    else   window.location.href = "./prompts.html";
+    const q = heroSearch?.value.trim();
+    window.location.href = q
+      ? `./prompts.html?q=${encodeURIComponent(q)}`
+      : "./prompts.html";
   }
+  heroBtn?.addEventListener("click", goSearch);
+  heroSearch?.addEventListener("keydown", e => { if (e.key === "Enter") goSearch(); });
 
-  // Load all data in parallel
-  const [cats, catStats, stats, trending, freshData] = await Promise.all([
-    getCategories().catch(()=>[]),
-    getCategoryStats().catch(()=>({})),
-    getLiveStats().catch(()=>({ total:0, free:0, premium:0, hot:0 })),
-    getTrendingPrompts(6).catch(()=>[]),
-    getPrompts({ pageSize:8 }).catch(()=>({ items:[] }))
+  // Load everything in parallel
+  const [cats, catStats, stats, trending, fresh] = await Promise.all([
+    getCategories().catch(()  => []),
+    getCategoryStats().catch(()  => ({})),
+    getLiveStats().catch(()    => ({ total:0, free:0, premium:0, hot:0 })),
+    getTrendingPrompts(6).catch(() => []),
+    getFreshPrompts(8).catch(()   => []),
   ]);
 
-  // Live hero stats
-  document.getElementById("stat-prompts").textContent = stats.total || "0";
-  document.getElementById("stat-free").textContent    = stats.free  || "0";
-  document.getElementById("stat-premium").textContent = stats.premium || "0";
-  document.getElementById("stat-cats").textContent    = cats.length || "0";
+  // Stats bar
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set("stat-prompts", stats.total   || "0");
+  set("stat-free",    stats.free    || "0");
+  set("stat-premium", stats.premium || "0");
+  set("stat-cats",    cats.length   || "0");
 
-  // Categories grid with real prompt counts
+  // Categories grid
   const catGrid = document.getElementById("cat-grid");
   if (catGrid) {
     if (!cats.length) {
-      catGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2);">
-        No categories yet. Add them in the admin panel.</div>`;
+      catGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--text2)">
+        <div style="font-size:3rem;margin-bottom:12px">📂</div>
+        <p>No categories yet. Add them in the admin panel.</p>
+      </div>`;
     } else {
-      catGrid.innerHTML = cats.slice(0,8).map(c => renderCategoryCard(c, catStats[c.id] || {})).join("");
+      // catStats[c.id] is now { total, free, premium } object — correct
+      catGrid.innerHTML = cats.slice(0, 8).map(c =>
+        renderCategoryCard(c, catStats[c.id] || {})
+      ).join("");
     }
   }
 
@@ -82,245 +85,133 @@ import { injectNav, injectFooter } from "./js/nav.js";
   const trendingGrid = document.getElementById("trending-grid");
   if (trendingGrid) {
     if (!trending.length) {
-      trendingGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--text2);">
-        <div style="font-size:2.5rem;margin-bottom:12px;">🔥</div>
-        <p>No trending prompts yet. Mark prompts as Hot in the admin panel.</p></div>`;
+      trendingGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--text2)">
+        <div style="font-size:3rem;margin-bottom:12px">🔥</div>
+        <p>No trending prompts yet. Mark prompts as Hot in the admin panel.</p>
+      </div>`;
     } else {
       trendingGrid.innerHTML = trending.map(p => renderPromptCard(p)).join("");
     }
   }
 
-  // Fresh picks
+  // Fresh picks (FIX: was getPrompts({pageSize:8}) — now getFreshPrompts)
   const freshGrid = document.getElementById("fresh-grid");
-  const items = freshData.items || [];
   if (freshGrid) {
-    if (!items.length) {
-      freshGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--text2);">
-        <div style="font-size:2.5rem;margin-bottom:12px;">📭</div>
-        <p>No prompts yet. Add prompts via the admin panel.</p></div>`;
+    if (!fresh.length) {
+      freshGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--text2)">
+        <div style="font-size:3rem;margin-bottom:12px">📭</div>
+        <p>No prompts yet. Add prompts via the admin panel to get started.</p>
+      </div>`;
     } else {
-      freshGrid.innerHTML = items.map(p => renderPromptCard(p)).join("");
+      freshGrid.innerHTML = fresh.map(p => renderPromptCard(p)).join("");
     }
   }
-
-  // Wire promo store link
-  const promoLink = document.getElementById("promo-store-link");
-  if (promoLink && cfg.playStoreUrl) promoLink.href = cfg.playStoreUrl;
 
   injectFooter(cfg);
 })();
 </script>
 
-<!-- HERO -->
-<section class="hero" aria-labelledby="hero-title">
-  <div class="hero-tag" aria-label="Badge">✨ The #1 AI Prompt Library</div>
-  <h1 id="hero-title">
-    Discover the Best<br/>
-    <span class="grad">AI Prompts</span> for Every Tool
-  </h1>
-  <p class="hero-sub">Browse curated prompts for Midjourney, DALL·E 3, ChatGPT, Claude, Sora and more. Create stunning AI content instantly.</p>
-  <div class="hero-actions">
-    <a href="./prompts.html" class="btn-primary">
-      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-      </svg>Browse All Prompts
-    </a>
-    <a href="./categories.html" class="btn-outline">
-      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
-      </svg>View Categories
-    </a>
-  </div>
-
-  <!-- Hero search bar -->
-  <div class="hero-search-bar" role="search">
-    <label for="hero-search" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;">Search AI prompts</label>
-    <input id="hero-search" type="search" autocomplete="off"
-           placeholder="Search prompts — e.g. cyberpunk portrait, travel landscape…"
-           aria-label="Search AI prompts"/>
-    <button class="hero-search-btn" id="hero-search-btn" aria-label="Submit search">
-      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-      </svg>
-    </button>
-  </div>
-
-  <!-- Live stats — real Firestore data -->
-  <div class="hero-stats" aria-label="Platform statistics">
-    <div class="hero-stat">
-      <div class="hero-stat-num" id="stat-prompts">…</div>
-      <div class="hero-stat-label">Total Prompts</div>
+<!-- Hero -->
+<section class="hero" itemscope itemtype="https://schema.org/WebSite">
+  <div class="hero-inner">
+    <div class="hero-badge">🚀 AI Prompt Library</div>
+    <h1 class="hero-title" itemprop="name">
+      Discover the Best<br/>
+      <span class="hero-gradient">AI Prompts</span>
+    </h1>
+    <p class="hero-sub">
+      Curated prompts for Midjourney, DALL·E 3, Stable Diffusion,<br class="hide-mob"/>
+      ChatGPT, Claude, Sora and more.
+    </p>
+    <div class="hero-search-wrap">
+      <input id="hero-search" type="search" placeholder="Search thousands of prompts…"
+             class="hero-search-input" autocomplete="off" aria-label="Search prompts"/>
+      <button id="hero-search-btn" class="hero-search-btn" aria-label="Search">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        Search
+      </button>
     </div>
-    <div class="hero-stat" style="border-left:1px solid var(--border);padding-left:32px;">
-      <div class="hero-stat-num" id="stat-free">…</div>
-      <div class="hero-stat-label">Free Prompts</div>
-    </div>
-    <div class="hero-stat" style="border-left:1px solid var(--border);padding-left:32px;">
-      <div class="hero-stat-num" id="stat-premium">…</div>
-      <div class="hero-stat-label">Premium</div>
-    </div>
-    <div class="hero-stat" style="border-left:1px solid var(--border);padding-left:32px;">
-      <div class="hero-stat-num" id="stat-cats">…</div>
-      <div class="hero-stat-label">Categories</div>
+    <div class="hero-stats">
+      <div class="hero-stat"><strong id="stat-prompts">…</strong><span>Total Prompts</span></div>
+      <div class="hero-stat"><strong id="stat-free">…</strong><span>Free</span></div>
+      <div class="hero-stat"><strong id="stat-premium">…</strong><span>Premium</span></div>
+      <div class="hero-stat"><strong id="stat-cats">…</strong><span>Categories</span></div>
     </div>
   </div>
 </section>
 
-<!-- AD: Leaderboard -->
-<div style="max-width:1200px;margin:0 auto;padding:0 20px;" aria-label="Advertisement">
-  <div class="ad-wrap">
-    <p class="ad-label">Advertisement</p>
-    <ins class="adsbygoogle" style="display:block"
-         data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-         data-ad-slot="1234567890"
-         data-ad-format="auto" data-full-width-responsive="true"></ins>
-    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-  </div>
-</div>
-
-<!-- CATEGORIES with real counts -->
-<section class="section" aria-labelledby="cat-title">
-  <div class="section-header">
-    <h2 class="section-title" id="cat-title">Browse by <span>Category</span></h2>
-    <a href="./categories.html" class="see-all" aria-label="View all categories">View all →</a>
-  </div>
-  <div class="categories-grid" id="cat-grid" aria-label="Prompt categories">
-    <!-- Skeletons -->
-    <div class="cat-card" style="background:var(--surface);border:1px solid var(--border);animation:sk-pulse 1.5s infinite;" aria-hidden="true"></div>
-    <div class="cat-card" style="background:var(--surface);border:1px solid var(--border);animation:sk-pulse 1.5s infinite;animation-delay:.1s;" aria-hidden="true"></div>
-    <div class="cat-card" style="background:var(--surface);border:1px solid var(--border);animation:sk-pulse 1.5s infinite;animation-delay:.2s;" aria-hidden="true"></div>
-    <div class="cat-card" style="background:var(--surface);border:1px solid var(--border);animation:sk-pulse 1.5s infinite;animation-delay:.3s;" aria-hidden="true"></div>
-    <div class="cat-card" style="background:var(--surface);border:1px solid var(--border);animation:sk-pulse 1.5s infinite;animation-delay:.4s;" aria-hidden="true"></div>
-    <div class="cat-card" style="background:var(--surface);border:1px solid var(--border);animation:sk-pulse 1.5s infinite;animation-delay:.5s;" aria-hidden="true"></div>
-  </div>
-</section>
-
-<!-- TRENDING -->
-<section class="section" aria-labelledby="trending-title">
-  <div class="section-header">
-    <h2 class="section-title" id="trending-title">🔥 <span>Trending</span> Prompts</h2>
-    <a href="./prompts.html?type=hot" class="see-all" aria-label="View all trending prompts">View all →</a>
-  </div>
-  <div class="prompts-grid" id="trending-grid" aria-label="Trending prompts">
-    <div class="prompt-card skeleton-card" aria-hidden="true"><div class="sk-img" style="height:200px;"></div><div class="card-body"><div class="sk-line sk-line-sm"></div><div class="sk-line sk-line-lg"></div><div class="sk-line sk-line-md"></div></div></div>
-    <div class="prompt-card skeleton-card" aria-hidden="true"><div class="sk-img" style="height:200px;"></div><div class="card-body"><div class="sk-line sk-line-sm"></div><div class="sk-line sk-line-lg"></div><div class="sk-line sk-line-md"></div></div></div>
-    <div class="prompt-card skeleton-card" aria-hidden="true"><div class="sk-img" style="height:200px;"></div><div class="card-body"><div class="sk-line sk-line-sm"></div><div class="sk-line sk-line-lg"></div><div class="sk-line sk-line-md"></div></div></div>
-  </div>
-</section>
-
-<!-- AD: Mid -->
-<div style="max-width:1200px;margin:0 auto;padding:0 20px;" aria-label="Advertisement">
-  <div class="ad-wrap">
-    <p class="ad-label">Advertisement</p>
-    <ins class="adsbygoogle" style="display:block"
-         data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-         data-ad-slot="2345678901"
-         data-ad-format="auto" data-full-width-responsive="true"></ins>
-    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-  </div>
-</div>
-
-<!-- APP PROMO -->
-<section style="max-width:1200px;margin:0 auto;padding:0 20px 20px;" aria-labelledby="app-promo-title">
-  <div style="background:linear-gradient(135deg,#1e1b4b 0%,#3730a3 50%,#4c1d95 100%);
-       border-radius:24px;padding:40px 32px;display:flex;align-items:center;
-       justify-content:space-between;gap:24px;flex-wrap:wrap;position:relative;overflow:hidden;">
-    <div style="position:absolute;right:-20px;top:-20px;width:200px;height:200px;
-         background:rgba(255,255,255,.04);border-radius:50%;pointer-events:none;"></div>
-    <div style="position:absolute;right:80px;bottom:-50px;width:280px;height:280px;
-         background:rgba(255,255,255,.03);border-radius:50%;pointer-events:none;"></div>
-    <div style="flex:1;min-width:240px;position:relative;">
-      <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;
-           background:rgba(255,255,255,.12);border-radius:100px;font-size:12px;
-           font-weight:700;color:rgba(255,255,255,.9);margin-bottom:14px;">
-        📱 Android App Available
+<!-- Categories -->
+<section class="section" aria-labelledby="cats-heading">
+  <div class="section-inner">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title" id="cats-heading">Browse by Category</h2>
+        <p class="section-sub">Find the perfect prompt for your use case</p>
       </div>
-      <h2 id="app-promo-title" style="font-size:clamp(1.4rem,3vw,2rem);font-weight:900;color:#fff;
-           line-height:1.2;margin-bottom:10px;">
-        Take PromptVault<br/>Everywhere You Go
-      </h2>
-      <p style="font-size:14px;color:rgba(255,255,255,.7);line-height:1.6;margin-bottom:24px;max-width:440px;">
-        Browse AI prompts on your Android phone. Save favourites, unlock premium prompts with a short ad, and copy to any AI tool instantly.
-      </p>
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <!-- No target=_blank: opens Play Store app on Android -->
-        <a id="promo-store-link" href="https://play.google.com/store/apps/details?id=com.enoysoft.promptvault"
-          style="display:inline-flex;align-items:center;gap:10px;padding:13px 24px;
-                 background:#fff;color:#1e1b4b;border-radius:12px;font-size:14px;font-weight:800;"
-          aria-label="Download PromptVault on Google Play">
-          <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px" aria-hidden="true">
-            <path d="M3.18 23.76c.37.21.8.22 1.18.04l12.18-6.83-2.61-2.62-10.75 9.41zM.32 1.36C.12 1.7 0 2.12 0 2.62v18.76c0 .5.12.92.32 1.26l.07.06 10.51-10.51v-.25L.39 1.3l-.07.06zM20.46 9.7l-2.93-1.65-2.93 2.93 2.93 2.93 2.94-1.65c.84-.47.84-1.09 0-1.56zM4.36.24L16.54 7.07l-2.61 2.62L3.18.28C3.56.1 3.99.1 4.36.28z"/>
-          </svg>
-          Get it on Google Play
-        </a>
-        <div style="display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.6);font-size:13px;">
-          ⭐ 4.8 · Free Download
-        </div>
+      <a href="./categories.html" class="btn-outline">View all →</a>
+    </div>
+    <div class="cat-grid" id="cat-grid">
+      <!-- JS fills this -->
+      <div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text2)">Loading categories…</div>
+    </div>
+  </div>
+</section>
+
+<!-- Trending -->
+<section class="section section-dark" aria-labelledby="trending-heading">
+  <div class="section-inner">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title" id="trending-heading">🔥 Trending Prompts</h2>
+        <p class="section-sub">Most popular prompts right now</p>
       </div>
+      <a href="./prompts.html" class="btn-outline">Browse all →</a>
     </div>
-    <div aria-hidden="true" style="width:140px;height:140px;background:rgba(255,255,255,.1);
-         border-radius:28px;display:flex;align-items:center;justify-content:center;
-         font-size:4.5rem;border:2px solid rgba(255,255,255,.15);flex-shrink:0;">✨</div>
-  </div>
-</section>
-
-<!-- LATEST PROMPTS -->
-<section class="section" aria-labelledby="fresh-title">
-  <div class="section-header">
-    <h2 class="section-title" id="fresh-title">🕐 <span>Latest</span> Prompts</h2>
-    <a href="./prompts.html" class="see-all" aria-label="Browse all prompts">Browse all →</a>
-  </div>
-  <div class="prompts-grid" id="fresh-grid" aria-label="Latest prompts">
-    <div class="prompt-card skeleton-card" aria-hidden="true"><div class="sk-img" style="height:200px;"></div><div class="card-body"><div class="sk-line sk-line-sm"></div><div class="sk-line sk-line-lg"></div><div class="sk-line sk-line-md"></div></div></div>
-    <div class="prompt-card skeleton-card" aria-hidden="true"><div class="sk-img" style="height:200px;"></div><div class="card-body"><div class="sk-line sk-line-sm"></div><div class="sk-line sk-line-lg"></div><div class="sk-line sk-line-md"></div></div></div>
-    <div class="prompt-card skeleton-card" aria-hidden="true"><div class="sk-img" style="height:200px;"></div><div class="card-body"><div class="sk-line sk-line-sm"></div><div class="sk-line sk-line-lg"></div><div class="sk-line sk-line-md"></div></div></div>
-    <div class="prompt-card skeleton-card" aria-hidden="true"><div class="sk-img" style="height:200px;"></div><div class="card-body"><div class="sk-line sk-line-sm"></div><div class="sk-line sk-line-lg"></div><div class="sk-line sk-line-md"></div></div></div>
-  </div>
-  <div style="text-align:center;margin-top:32px;">
-    <a href="./prompts.html" class="load-more-btn" style="display:inline-flex;" aria-label="Browse all prompts">
-      See All Prompts →
-    </a>
-  </div>
-</section>
-
-<!-- WHY PROMPTVAULT -->
-<section style="max-width:1200px;margin:0 auto;padding:20px 20px 60px;" aria-labelledby="why-title">
-  <h2 class="section-title" id="why-title" style="text-align:center;margin-bottom:40px;">Why <span style="background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">PromptVault?</span></h2>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;">
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px;">
-      <div style="font-size:2rem;margin-bottom:12px;" aria-hidden="true">🎨</div>
-      <h3 style="font-size:16px;font-weight:700;margin-bottom:8px;">All AI Tools Covered</h3>
-      <p style="font-size:13.5px;color:var(--text2);line-height:1.6;">Prompts for Midjourney, DALL·E 3, Stable Diffusion, ChatGPT, Claude, Sora and more.</p>
-    </div>
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px;">
-      <div style="font-size:2rem;margin-bottom:12px;" aria-hidden="true">⚡</div>
-      <h3 style="font-size:16px;font-weight:700;margin-bottom:8px;">Copy &amp; Use Instantly</h3>
-      <p style="font-size:13.5px;color:var(--text2);line-height:1.6;">One click to copy any prompt. Paste directly into your AI tool and create immediately.</p>
-    </div>
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px;">
-      <div style="font-size:2rem;margin-bottom:12px;" aria-hidden="true">🔍</div>
-      <h3 style="font-size:16px;font-weight:700;margin-bottom:8px;">Smart Filters</h3>
-      <p style="font-size:13.5px;color:var(--text2);line-height:1.6;">Filter by category, subcategory, tool, free or premium to find exactly what you need.</p>
-    </div>
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px;">
-      <div style="font-size:2rem;margin-bottom:12px;" aria-hidden="true">📱</div>
-      <h3 style="font-size:16px;font-weight:700;margin-bottom:8px;">Mobile App</h3>
-      <p style="font-size:13.5px;color:var(--text2);line-height:1.6;">Download the Android app to browse on the go, save favourites and unlock premium prompts.</p>
+    <div class="prompts-grid" id="trending-grid">
+      <!-- JS fills this -->
     </div>
   </div>
 </section>
 
-<!-- BOTTOM AD -->
-<div style="max-width:1200px;margin:0 auto;padding:0 20px;" aria-label="Advertisement">
-  <div class="ad-wrap">
-    <p class="ad-label">Advertisement</p>
-    <ins class="adsbygoogle" style="display:block"
-         data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-         data-ad-slot="3456789012"
-         data-ad-format="auto" data-full-width-responsive="true"></ins>
-    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+<!-- Fresh Picks -->
+<section class="section" aria-labelledby="fresh-heading">
+  <div class="section-inner">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title" id="fresh-heading">🕐 Fresh Picks</h2>
+        <p class="section-sub">Newly added prompts</p>
+      </div>
+      <a href="./prompts.html" class="btn-outline">See more →</a>
+    </div>
+    <div class="prompts-grid" id="fresh-grid">
+      <!-- JS fills this -->
+    </div>
   </div>
-</div>
+</section>
+
+<!-- CTA -->
+<section class="section">
+  <div class="section-inner" style="text-align:center;max-width:640px;margin:0 auto;padding:40px 20px">
+    <div style="font-size:3rem;margin-bottom:16px">✨</div>
+    <h2 style="font-size:clamp(22px,4vw,32px);font-weight:900;color:var(--text);margin-bottom:12px">
+      Start Browsing for Free
+    </h2>
+    <p style="color:var(--text2);font-size:15px;margin-bottom:28px">
+      Create an account to save prompts, earn coins, and unlock premium content.
+    </p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <a href="./prompts.html" class="hero-search-btn" style="text-decoration:none">
+        Browse Prompts →
+      </a>
+      <a href="./auth.html?tab=register" class="btn-outline" style="font-size:15px;padding:12px 24px">
+        Create Free Account
+      </a>
+    </div>
+  </div>
+</section>
 
 </body>
 </html>

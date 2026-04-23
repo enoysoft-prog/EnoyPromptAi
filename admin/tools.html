@@ -119,14 +119,15 @@
 </div>
 
 <script type="module">
-import { guardPage }                              from "./js/guard.js";
-import { injectSidebar }                          from "./js/sidebar.js";
+import { guard }                              from "./js/guard.js";
+import { initSidebar }                          from "./js/sidebar.js";
 import { loadTools, openAddTool, saveTool, updateToolPrev } from "./js/tools.js";
 import { closeModal } from "./js/ui.js";
 
 window.pvToolPrev = updateToolPrev;
-injectSidebar();
-guardPage(async () => {
+await guard();
+initSidebar();
+(async () => {
   await loadTools();
   const cnt=document.getElementById("t-count"), cntM=document.getElementById("t-count-m");
   if(cnt&&cntM){const obs=new MutationObserver(()=>cntM.textContent=cnt.textContent);obs.observe(cnt,{childList:true,characterData:true,subtree:true});}

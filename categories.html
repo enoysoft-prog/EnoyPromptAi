@@ -42,7 +42,7 @@ import { injectNav, injectFooter } from "./js/nav.js";
   // Load prompt counts + subcats for each category in parallel
   const sections = await Promise.all(cats.map(async cat => {
     const [promptsData, subs] = await Promise.all([
-      getPrompts({ cat: cat.id, pageSize: 1 }).catch(()=>({ items:[] })),
+      getPrompts({ categoryId: cat.id }).catch(()=>({ items:[] })),
       getSubcategories(cat.id).catch(()=>[])
     ]);
     return { cat, subs, count: 0 }; // count via cards loaded below

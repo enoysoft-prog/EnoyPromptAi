@@ -1,8 +1,8 @@
-# PromptVault — Complete Web Platform
+# ✨ PromptVault v2.0 — Complete Web Project
 
-**Stack:** Firebase Auth + Firestore · Cloudinary · Vanilla HTML/CSS/JS  
-**Hosting:** Vercel (recommended) or GitHub Pages  
-**By:** ENOY SOFT · enoysoft@gmail.com
+> **The ultimate AI Prompt Library** with user authentication, coin economy, referral system, Pro memberships, prompt submissions, and a full admin panel.
+
+**Tech Stack:** Firebase (Auth + Firestore) · Cloudinary · Vanilla JS (ES Modules) · Tailwind CSS (admin) · Vercel
 
 ---
 
@@ -10,369 +10,326 @@
 
 ```
 promptvault/
-├── src/                 ← User-facing website (public)
-│   ├── index.html       — Home page (hero, trending, categories)
-│   ├── prompts.html     — Browse + filter prompts
-│   ├── prompt.html      — Single prompt detail
-│   ├── categories.html  — All categories with subcategories
-│   ├── auth.html        — Sign in / Register / Forgot password
-│   ├── profile.html     — User profile, coins, referral code
-│   ├── pro.html         — Pro upgrade with coins
-│   ├── submit.html      — Submit a prompt to earn coins
-│   ├── saved.html       — User's saved prompts
-│   ├── about.html       — About page
-│   ├── 404.html         — Not found
-│   ├── js/
-│   │   ├── firebase.js  — Firebase init (Auth + Firestore)
-│   │   ├── auth.js      — Registration, login, Google auth, referral processing
-│   │   ├── coins.js     — Coin operations (spend, unlock, pro upgrade)
-│   │   ├── db.js        — Firestore read helpers
-│   │   ├── ui.js        — Cards, banners, toast, SEO meta
-│   │   └── nav.js       — Auth-aware navbar + footer
-│   └── css/style.css    — All styles (dark theme, responsive)
-│
-├── admin/               ← Admin panel (protected by Firebase Auth)
-│   ├── index.html       — Login page
-│   ├── dashboard.html   — Stats overview (prompts, users, coins, submissions)
-│   ├── prompts.html     — Prompt CRUD
-│   ├── submissions.html — Review user-submitted prompts, approve/reject + award coins
-│   ├── categories.html  — Category + subcategory CRUD
-│   ├── tools.html       — AI tools CRUD
-│   ├── users.html       — User management (approve, ban, role, coins)
-│   ├── coins.html       — Coin config, plans, transactions, referral stats, manual award
-│   ├── config.html      — App config (text, URLs, AdMob IDs, feature flags)
-│   └── js/
-│       ├── firebase.js  — Firebase init (Auth + Firestore)
-│       ├── guard.js     — Auth guard (redirects to login if not signed in)
-│       ├── sidebar.js   — Navigation with pending badges
-│       ├── dashboard.js — Stats aggregation
-│       ├── submissions.js — Prompt review workflow
-│       ├── coins.js     — Coin config, transactions, referral stats
-│       ├── users.js     — User CRUD with role/coin management
-│       └── ...          — Other modules
-│
-├── shared/
-│   └── firebase-config.js — Shared Firebase config reference
-│
-├── firestore.rules      ← PASTE INTO Firebase Console → Firestore → Rules
-├── vercel.json          ← Vercel deployment config
-├── .gitignore
+├── index.html              ← Homepage
+├── prompts.html            ← Browse all prompts
+├── prompt.html             ← Single prompt detail
+├── categories.html         ← Browse categories
+├── about.html              ← About page
+├── auth.html               ← Login / Register / Password Reset
+├── dashboard.html          ← User dashboard (coins, referrals, upgrade)
+├── 404.html                ← Custom 404
 ├── robots.txt
-└── sitemap.xml
+├── sitemap.xml
+├── vercel.json             ← Vercel deployment config
+├── firestore.rules         ← Firestore security rules
+├── css/
+│   └── style.css           ← Complete unified stylesheet
+├── js/
+│   ├── firebase.js         ← Firebase initializer
+│   ├── auth.js             ← Auth, registration, referrals, roles, coin ops
+│   ├── db.js               ← Firestore queries (prompts, categories, tools)
+│   ├── nav.js              ← Navigation with auth-aware user menu
+│   └── ui.js               ← UI helpers (cards, toast, modals, skeletons)
+└── admin/
+    ├── index.html          ← Admin login
+    ├── dashboard.html      ← Admin dashboard + stats
+    ├── users.html          ← User management + coin adjustment
+    ├── submissions.html    ← Approve/reject user-submitted prompts
+    ├── prompts.html        ← Prompt CRUD
+    ├── categories.html     ← Category management
+    ├── tools.html          ← AI Tools management
+    ├── referrals.html      ← Referral tracking + reward config
+    ├── config.html         ← All app settings incl. coin rewards
+    ├── css/style.css
+    └── js/
+        ├── firebase.js
+        ├── guard.js        ← Admin auth guard
+        ├── sidebar.js      ← Sidebar with notification badges
+        ├── dashboard.js
+        ├── users.js        ← User management + coin ops
+        ├── submissions.js  ← Prompt submission review
+        ├── prompts.js
+        ├── categories.js
+        ├── tools.js
+        ├── cloudinary.js
+        ├── config.js       ← Config with all coin/reward settings
+        └── ui.js
 ```
 
 ---
 
-## 🚀 Deploy to Vercel (Recommended)
+## 🚀 Quick Start
 
-### Option A — Vercel CLI
+### 1. Firebase Setup
+
+1. Go to [Firebase Console](https://console.firebase.google.com) → Create project
+2. Enable **Authentication** → Email/Password + Google
+3. Enable **Firestore Database** → Start in **production mode**
+4. Copy your config into `js/firebase.js` AND `admin/js/firebase.js`:
+
+```js
+const firebaseConfig = {
+  apiKey:            "YOUR_API_KEY",
+  authDomain:        "YOUR_PROJECT.firebaseapp.com",
+  projectId:         "YOUR_PROJECT_ID",
+  storageBucket:     "YOUR_PROJECT.firebasestorage.app",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId:             "YOUR_APP_ID"
+};
+```
+
+5. Deploy Firestore rules:
+   - In Firebase Console → Firestore → Rules
+   - Copy contents of `firestore.rules` and publish
+
+### 2. Create Your Admin Account
+
+1. Register a new account on your site via `auth.html`
+2. In Firebase Console → Firestore → `users` collection
+3. Find your user document, set `role` field to `"admin"`
+4. Now you can sign in at `/admin/`
+
+### 3. Configure Cloudinary (for image uploads)
+
+Update `admin/js/cloudinary.js` with your Cloudinary credentials:
+```js
+const CLOUDINARY_CLOUD = "your_cloud_name";
+const CLOUDINARY_PRESET = "your_unsigned_preset";
+```
+
+### 4. Deploy to Vercel
+
 ```bash
-npm install -g vercel
-cd promptvault
-vercel login
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy
 vercel --prod
 ```
 
-### Option B — Vercel Dashboard
-1. Push this repo to GitHub
-2. Go to [vercel.com](https://vercel.com) → New Project → Import your repo
-3. Framework: **Other** (static)
-4. Root directory: `/` (leave default)
-5. Click **Deploy**
-
-Vercel reads `vercel.json` automatically. Your site structure:
-- `https://your-domain.vercel.app/` → serves `src/index.html`
-- `https://your-domain.vercel.app/admin/` → serves `admin/index.html`
-
-### Option B — GitHub Pages
-1. Create repo → upload all files → Settings → Pages → main branch / root
-2. User site: `https://username.github.io/repo/src/`
-3. Admin: `https://username.github.io/repo/admin/`
-
----
-
-## 🔥 Firebase Setup (Step by Step)
-
-### 1. Enable Authentication
-Firebase Console → Authentication → Sign-in method → Enable:
-- ✅ Email/Password
-- ✅ Google
-
-### 2. Publish Firestore Rules
-Paste the contents of `firestore.rules` into:
-> Firebase Console → Firestore Database → Rules → Publish
-
-### 3. Create Admin User
-Firebase Console → Authentication → Users → Add user
-- Email: `your-admin@email.com`
-- Password: `StrongPassword123!`
-
-### 4. Add Authorized Domains
-Firebase Console → Authentication → Settings → Authorized domains:
-- Add your Vercel domain: `your-project.vercel.app`
-- Add your custom domain if you have one
-
-### 5. Create Cloudinary Upload Preset
-1. [cloudinary.com](https://cloudinary.com) → Settings → Upload → Add Upload Preset
-2. Name: `pv_upload` | Signing Mode: **Unsigned**
-3. Save
+Or connect your GitHub repo at [vercel.com](https://vercel.com) for automatic deployments.
 
 ---
 
 ## 🪙 Coin System
 
+The coin economy lets users earn, hold, and spend **PromptCoins**.
+
 ### How Users Earn Coins
-| Action | Default Reward |
-|--------|---------------|
-| Referral (new user registers) | 50 coins |
-| Submitted prompt approved | 100 coins |
-| Daily login | 5 coins |
-| Complete profile (one-time) | 30 coins |
+| Method | Amount |
+|--------|--------|
+| Referring a new user | Set by admin (default: 10) |
+| Pro prompt approved | Set by admin (default: 20) |
+| Admin bonus | Any amount (admin panel) |
 
 ### How Users Spend Coins
-| Purchase | Default Cost |
-|----------|-------------|
-| Pro Monthly (30 days) | 500 coins |
-| Pro Yearly (365 days) | 4,500 coins |
-| Remove Ads (30 days) | 200 coins |
-| Unlock 1 premium prompt | 20 coins |
+| Action | Cost |
+|--------|------|
+| Upgrade to Pro | Set by admin (default: 100) |
+| Remove ads (non-Pro) | Set by admin (default: 50) |
 
-**All values are configurable** from Admin → Coins & Plans.
-
-### Pro Benefits
-- ✅ No ads
-- ✅ All premium prompts unlocked
-- ✅ Submit prompts to earn more coins
-- ✅ Priority support
+### Admin Controls (App Config page)
+- **Referral Coin Reward** — coins per successful referral signup
+- **Pro Membership Cost** — coins to upgrade from Regular → Pro
+- **Prompt Approval Reward** — coins when a submitted prompt is approved
+- **Remove Ads Cost** — coins to permanently remove ads
 
 ---
 
 ## 👥 User Roles
 
-| Role | Access |
-|------|--------|
-| `regular` | Browse free prompts, save favourites |
-| `pro` | No ads, all premium prompts unlocked, submit prompts |
-| `admin` | Full admin panel access + all pro features |
+| Role | Description |
+|------|-------------|
+| `guest` | Not logged in. Can browse free prompts. |
+| `regular` | Registered. Can save prompts, earn/spend coins, refer friends. |
+| `pro` | Upgraded via coins. No ads, all premium prompts, can submit prompts. |
+| `admin` | Full admin panel access. Set manually in Firestore. |
 
-### User Status Flow
+---
+
+## 📝 Prompt Submission Flow (Pro Users)
+
+1. **Pro user** submits a prompt via Dashboard → Submit Prompt
+2. Submission saved in `submissions` collection with `status: "pending"`
+3. **Admin** sees badge on Submissions sidebar item
+4. Admin reviews the prompt on `submissions.html`
+5. Admin clicks **Approve** → prompt goes live in `prompts` collection + author receives coins
+6. Admin clicks **Reject** → submission marked as rejected, no coins awarded
+
+---
+
+## 🔗 Referral System
+
+1. Every user gets a unique **referral code** on account creation
+2. User shares their referral link: `https://your-site.com/auth.html?tab=register&ref=ABC123`
+3. New user registers with the code → referrer earns coins automatically
+4. Admin can change the reward at any time in **App Config** or **Referrals page**
+
+---
+
+## 🔐 Security Guide
+
+### Firestore Rules
+The `firestore.rules` file enforces:
+- Public can only read **active/approved** prompts, categories, tools, config
+- Users can only read/write **their own** user document
+- Users **cannot** change their own `role`, `coins`, `status`, or `referralCode`
+- Only **admins** can manage all data
+- Submissions can only be created by Pro users with their own UID
+
+### Admin Panel Security
+
+**Critical steps before going live:**
+
+1. **Change the admin directory path** — rename `/admin/` to something non-obvious like `/pv-manage-x9k/`
+   - Update all links in sidebar.js accordingly
+
+2. **Enable Firebase App Check** in Firebase Console to block unauthorized API calls
+
+3. **Restrict your Firebase API key** in Google Cloud Console:
+   - Go to [console.cloud.google.com](https://console.cloud.google.com)
+   - APIs & Services → Credentials → Edit your API key
+   - Under "Application restrictions" select "HTTP referrers"
+   - Add your Vercel domain: `https://your-site.vercel.app/*`
+
+4. **Use strong admin passwords** — minimum 16 characters, use a password manager
+
+5. **Enable 2-Step Verification** on your Firebase Google account
+
+6. **Monitor Firestore usage** — set budget alerts in Firebase Console to detect abuse
+
+7. **Never commit real Firebase credentials** to a public GitHub repo
+   - Use environment variables or `.env` files (add to `.gitignore`)
+
+8. **Review Firebase Auth settings**:
+   - Enable email enumeration protection
+   - Set reasonable rate limits
+
+### Data Security Tips
+
+- Firestore rules are your **last line of defense** — always test them
+- Use Firebase Rules Playground to test rule scenarios before deploying
+- Periodically export Firestore data for backup (automate with Cloud Scheduler)
+- Use Firestore indexes only where necessary to minimize attack surface
+- **Never** store sensitive data (payment info, passwords) in Firestore — Firebase Auth handles passwords
+
+### .gitignore Setup
+
+Create a `.gitignore` file:
 ```
-Register → status: "pending"
-Admin approves → status: "active"  (role: "regular")
-User spends coins → role: "pro"
-Admin bans → status: "banned"
+.env
+.env.local
+node_modules/
+*.log
+.DS_Store
 ```
 
 ---
 
-## 📤 Prompt Submission Flow
+## 🌐 SEO Optimization
 
-```
-User submits via submit.html
-    ↓
-Saved to /prompt_submissions/{id} with status: "pending"
-    ↓
-Admin reviews in admin/submissions.html
-    ↓
-Admin clicks Approve + sets coin reward
-    ↓
-Prompt published to /prompts collection (live on website)
-    ↓
-User's coin balance updated (+reward)
-    ↓
-User sees coins in their profile
-```
+- All public pages include `<title>`, `<meta description>`, Open Graph & Twitter cards
+- `robots.txt` disallows admin, auth, and dashboard pages
+- `sitemap.xml` — update with your actual domain
+- Prompt pages use Schema.org `Article` markup
+- Category pages use Schema.org structured data
+- Canonical URLs throughout
+
+### To update canonical URLs:
+Find and replace `YOUR_DOMAIN.com` in all HTML files.
 
 ---
 
-## 📱 Android App Integration Guide
+## 📱 Android App Implementation Guide
 
-After the web platform is set up, connect your Android app to the same Firestore project.
+### Option A: WebView App (Fastest)
+1. Create a new Android project in Android Studio
+2. Use `WebView` to load your Vercel URL
+3. Add `INTERNET` permission in `AndroidManifest.xml`
+4. Enable JavaScript: `webView.settings.javaScriptEnabled = true`
+5. Enable DOM storage: `webView.settings.domStorageEnabled = true`
+6. Intercept `playStoreUrl` links to open Play Store intent
+7. Handle back navigation: override `onBackPressed` to call `webView.goBack()`
 
-### Reading from Firestore in Android
+### Option B: Native App with Firebase SDK (Recommended for full features)
+1. Add Firebase to your Android project via `google-services.json`
+2. Use Retrofit/OkHttp to call Firestore REST API
+3. Use Firebase Auth SDK for native authentication
+4. Implement AdMob SDK with the unit IDs set in App Config
+5. Use Cloudinary Android SDK for image loading
 
-```java
-// FirestoreRepository.java
-FirebaseFirestore db = FirebaseFirestore.getInstance();
-
-// Fetch categories
-db.collection("categories")
-  .get()
-  .addOnSuccessListener(snap -> {
-    List<Category> cats = new ArrayList<>();
-    for (QueryDocumentSnapshot d : snap) {
-      cats.add(d.toObject(Category.class));
+### AdMob Integration
+Your AdMob IDs are stored in Firestore at `config/app`. Fetch them at app startup:
+```kotlin
+db.collection("config").document("app").get()
+    .addOnSuccessListener { doc ->
+        val bannerId       = doc.getString("admobBannerId") ?: ""
+        val interstitialId = doc.getString("admobInterstitialId") ?: ""
+        val rewardedId     = doc.getString("admobRewardedId") ?: ""
+        // Initialize AdMob with these IDs
     }
-    // Update UI
-  });
 ```
 
-### Reading coin config (for AdMob on/off)
-```java
-db.document("config/app")
-  .get()
-  .addOnSuccessListener(snap -> {
-    boolean adsEnabled = snap.getBoolean("adsEnabled");
-    // Show/hide ads based on config
-  });
-```
-
-### User coin balance (for premium unlock)
-```java
-db.document("users/" + currentUser.getUid())
-  .get()
-  .addOnSuccessListener(snap -> {
-    long coins = snap.getLong("coins");
-    String role = snap.getString("role");
-    boolean isPro = "pro".equals(role) || "admin".equals(role);
-    // isPro users: unlock all premiums
-    // Others: check unlockedPrompts array
-  });
-```
-
-### User authentication in Android
-```java
-// Use the same Firebase project — credentials in google-services.json
-FirebaseAuth auth = FirebaseAuth.getInstance();
-
-// After login, create/update user document
-Map<String, Object> data = new HashMap<>();
-data.put("uid", user.getUid());
-data.put("email", user.getEmail());
-data.put("status", "pending");
-data.put("role", "regular");
-data.put("coins", 0);
-data.put("lastLoginAt", FieldValue.serverTimestamp());
-
-db.collection("users").document(user.getUid())
-  .set(data, SetOptions.merge());
+### Coin Sync
+The coin balance is stored in `users/{uid}.coins` in Firestore. Listen for real-time updates:
+```kotlin
+db.collection("users").document(uid)
+    .addSnapshotListener { snapshot, _ ->
+        val coins = snapshot?.getLong("coins") ?: 0
+        // Update UI
+    }
 ```
 
 ---
 
-## 🔒 Admin Panel Security Tips
+## 🛠 GitHub Repository Setup
 
-### CRITICAL — Restrict Admin Access by UID
+```bash
+# Initialize
+git init
+git add .
+git commit -m "feat: PromptVault v2.0 — full project with coin system"
 
-Open `firestore.rules` and update the `isAdminUser()` function:
-
-```javascript
-function isAdminUser() {
-  return isSignedIn() && request.auth.uid in [
-    "YOUR_ADMIN_UID_1",
-    "YOUR_ADMIN_UID_2"
-  ];
-}
+# Create repo on GitHub.com, then:
+git remote add origin https://github.com/YOUR_USERNAME/promptvault.git
+git branch -M main
+git push -u origin main
 ```
 
-Find your admin UID in Firebase Console → Authentication → Users (copy the UID column).
+**Branch strategy:**
+- `main` — production (auto-deploys to Vercel)
+- `develop` — staging
+- `feature/*` — new features
 
-### Security Best Practices
+---
 
-**1. Never commit secrets to Git**
-- The Firebase web config is safe to commit (it's client-side)
-- Never commit Firebase Admin SDK service account keys
-- Never commit `.env` files
+## 📊 Firestore Data Model
 
-**2. Restrict API key in Google Cloud Console**
-- Go to [console.cloud.google.com](https://console.cloud.google.com)
-- APIs & Services → Credentials → Your API Key
-- Add HTTP referrer restrictions: `your-domain.vercel.app/*`
-- This prevents others from using your key on their domains
-
-**3. Use Firebase App Check (recommended)**
-- Firebase Console → App Check
-- Register your web apps to prevent unauthorized API usage
-
-**4. Admin panel URL obscurity**
-- Keep `/admin/` URL private — don't link to it publicly
-- Consider renaming the folder to something non-obvious for extra obscurity
-
-**5. Strong Firestore rules**
-- Never use `allow read, write: if true` in production
-- Always scope writes to authenticated users
-- Scope sensitive reads (user data, transactions) to the owner
-
-**6. Monitor Firebase Console regularly**
-- Check Firestore usage for unusual spikes
-- Enable Firebase Alerts for budget limits
-- Review Authentication logs monthly
-
-**7. Password policy**
-- Firebase enforces minimum 6 chars by default
-- Consider adding client-side validation for 8+ chars + special characters
-
-**8. Rate limiting**
-- Firebase Authentication automatically rate-limits login attempts
-- Cloud Firestore has built-in rate limiting per project
-
-**9. Secure admin login page**
-- Keep the admin panel on a separate subdirectory
-- The `guard.js` already prevents unauthorized access
-- Consider IP allowlisting at Vercel level for the `/admin/` path
-
-**10. Regular security audit checklist**
 ```
-[ ] Firestore rules restrict admin writes to specific UIDs
-[ ] API key has domain restrictions in Google Cloud Console
-[ ] Admin UIDs are hardcoded in firestore.rules
-[ ] Firebase App Check is enabled
-[ ] No `.env` or service account files in git history
-[ ] Admin panel URL is not publicly indexed (robots.txt)
-[ ] Firebase billing alerts are configured
-[ ] Authentication rate limiting is active (default in Firebase)
+config/app              ← Global app settings + coin values
+categories/{id}         ← Prompt categories
+subcategories/{id}      ← Sub-categories
+tools/{id}              ← AI tools (Midjourney, DALL·E, etc.)
+prompts/{id}            ← Live approved prompts
+submissions/{id}        ← User-submitted prompts awaiting review
+users/{uid}             ← User profiles (role, coins, savedPrompts, referralCode)
+referrals/{id}          ← Referral tracking records
+coinTransactions/{id}   ← Full coin earn/spend audit log
+unlocks/{id}            ← Premium prompt unlock records
 ```
 
 ---
 
-## 🔍 SEO Features
+## 🆘 Troubleshooting
 
-- Semantic HTML5 with h1→h2→h3 hierarchy
-- `<meta name="description">` on all public pages
-- Open Graph + Twitter Card tags
-- JSON-LD structured data (WebSite, Article schemas)
-- `sitemap.xml` + `robots.txt`
-- Dynamic meta tag updates on prompt detail pages
-- `alt` text on all images
-- ARIA labels on interactive elements
-- Canonical URLs
-- Server-sent security headers via `vercel.json`
-
-**To update sitemap:** Edit `sitemap.xml` replacing `YOUR_DOMAIN` with your actual domain.
+| Issue | Fix |
+|-------|-----|
+| Admin login redirects back to login | Ensure your user doc has `role: "admin"` in Firestore |
+| Referral coins not awarded | Check Firestore rules allow create on `referrals` collection |
+| Prompts not loading | Check `status` field — must be `"active"` or `"approved"` |
+| Coin balance not updating | Check `coinTransactions` write rules; ensure `users/{uid}` update is allowed |
+| Submissions not visible to admin | Confirm `submissions` read rule allows admin role |
 
 ---
 
-## 🔧 What to Change Before Launch
-
-### Step 1 — Replace YOUR_DOMAIN in all src HTML files
-```
-sitemap.xml     → 3 occurrences
-src/index.html  → og:url, canonical
-src/prompts.html → canonical
-src/categories.html → canonical
-src/auth.html   → link rel
-src/pro.html    → link rel
-```
-
-### Step 2 — AdSense Publisher ID
-Replace `ca-pub-XXXXXXXXXXXXXXXX` in:
-- `src/index.html` (3 ad slots)
-- `src/prompts.html` (2 ad slots)
-- `src/prompt.html` (2 ad slots)
-
-### Step 3 — Play Store URL
-Admin → Config → Play Store URL → paste your real Play Store link
-
-### Step 4 — Firestore Rules with your Admin UID
-```javascript
-function isAdminUser() {
-  return isSignedIn() && request.auth.uid == "YOUR_ACTUAL_ADMIN_UID";
-}
-```
-
-### Step 5 — Firestore Rules → Publish
-Paste `firestore.rules` into Firebase Console → Firestore → Rules
-
----
-
-*PromptVault v5.0 — Complete Platform · Firebase + Cloudinary · ENOY SOFT*
+Built with ❤️ by ENOY SOFT
