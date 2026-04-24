@@ -4,85 +4,75 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Browse AI Prompts — PromptVault</title>
-<meta name="description" content="Browse and filter AI prompts by category, AI tool, free or premium. Find the perfect prompt for Midjourney, DALL·E 3, ChatGPT and more."/>
+<meta name="description" content="Browse and filter 1000+ AI prompts by category, subcategory, AI tool, free or premium. Find the perfect prompt for Midjourney, DALL·E 3, ChatGPT and more."/>
 <meta name="robots" content="index, follow"/>
-<link rel="canonical" href="https://YOUR_DOMAIN.com/prompts.html"/>
+<link rel="canonical" href="https://YOUR_USERNAME.github.io/promptvault/prompts.html"/>
+<meta property="og:title" content="Browse AI Prompts — PromptVault"/>
+<meta property="og:description" content="Filter 1000+ AI prompts by category, tool and type."/>
+<meta property="og:type" content="website"/>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="./css/style.css"/>
 </head>
 <body>
 
 <script type="module">
-// FIX: use correct param names — categoryId, subcategoryId, toolId (not cat/subcat/tool)
 import { getCategories, getSubcategories, getPrompts, getTools, getAppConfig } from "./js/db.js";
 import { renderPromptCard, skeletonCards, esc } from "./js/ui.js";
 import { injectNav, injectFooter } from "./js/nav.js";
 
-const params = new URLSearchParams(location.search);
-
-// State — using correct DB param names
-let filterCategoryId    = params.get("cat")    || "";
-let filterSubcategoryId = params.get("subcat") || "";
-let filterToolId        = params.get("tool")   || "";
-let filterSearch        = params.get("q")      || "";
-let filterIsPremium     = params.get("type") === "premium" ? true
-                        : params.get("type") === "free"    ? false
-                        : undefined;
+const params      = new URLSearchParams(location.search);
+let currentCat    = params.get("cat")      || "";
+let currentSubcat = params.get("subcat")   || "";
+let currentType   = params.get("type")     || "";
+let currentTool   = params.get("tool")     || "";
+let currentQ      = params.get("q")        || "";
 let currentPage   = 0;
 let isLoading     = false;
-let totalResults  = 0;
+let allCats       = [];
 
 (async () => {
   const cfg = await getAppConfig().catch(() => ({}));
   injectNav(cfg);
 
+  // Load categories + tools in parallel
   const [cats, tools] = await Promise.all([
-    getCategories().catch(() => []),
-    getTools().catch(() => []),
+    getCategories().catch(()=>[]),
+    getTools().catch(()=>[])
   ]);
+  allCats = cats;
 
-  // Set page heading from URL query
-  if (filterSearch) {
-    document.getElementById("page-heading").textContent = `Search: "${filterSearch}"`;
-    document.title = `"${filterSearch}" Prompts — PromptVault`;
-  } else if (filterCategoryId) {
-    const cat = cats.find(c => c.id === filterCategoryId);
-    if (cat) {
-      document.getElementById("page-heading").textContent = cat.name + " Prompts";
-      document.title = `${cat.name} AI Prompts — PromptVault`;
-    }
-  }
-
-  // Populate filter UI
+  // Populate category chips
   buildCategoryChips(cats);
   buildTypeChips();
-  buildToolChips(tools);
+  buildToolSelect(tools);
 
-  // Load subcategories if category pre-selected
-  if (filterCategoryId) {
-    const subcats = await getSubcategories(filterCategoryId).catch(() => []);
-    buildSubcatChips(subcats);
+  // If category already selected, load subcategories
+  if (currentCat) {
+    await buildSubcategoryChips(currentCat);
+    const catObj = cats.find(c => c.id === currentCat);
+    if (catObj) updatePageMeta(catObj.name);
   }
 
-  // Wire search bar
+  // Search box in filter bar
   const searchInput = document.getElementById("filter-search");
   if (searchInput) {
-    searchInput.value = filterSearch;
-    let searchTimer;
+    searchInput.value = currentQ;
+    let timer;
     searchInput.addEventListener("input", () => {
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(() => {
-        filterSearch = searchInput.value.trim();
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        currentQ = searchInput.value.trim();
         resetAndLoad();
-      }, 350);
+      }, 400);
     });
     searchInput.addEventListener("keydown", e => {
-      if (e.key === "Enter") { filterSearch = searchInput.value.trim(); resetAndLoad(); }
+      if (e.key === "Enter") { clearTimeout(timer); currentQ = searchInput.value.trim(); resetAndLoad(); }
     });
   }
 
-  // Load more button
+  // Load-more button
   document.getElementById("load-more-btn")?.addEventListener("click", loadMore);
 
   // Initial load
@@ -90,218 +80,221 @@ let totalResults  = 0;
   injectFooter(cfg);
 })();
 
-// ── Build filter chips ────────────────────────────────────
 function buildCategoryChips(cats) {
   const wrap = document.getElementById("cat-chips");
   if (!wrap) return;
-  wrap.innerHTML =
-    `<button class="filter-chip ${!filterCategoryId ? 'active' : ''}" onclick="selectCat('')">All</button>` +
-    cats.map(c =>
-      `<button class="filter-chip ${filterCategoryId === c.id ? 'active' : ''}"
-         onclick="selectCat('${esc(c.id)}')">${esc(c.icon || '')} ${esc(c.name)}</button>`
-    ).join("");
+  const allChip = `<button class="filter-chip ${!currentCat?"active":""}" onclick="selectCat('')">All</button>`;
+  const chips = cats.map(c =>
+    `<button class="filter-chip ${currentCat===c.id?"active":""}"
+      onclick="selectCat('${c.id}','${esc(c.name)}')">${c.emoji||""} ${esc(c.name)}</button>`
+  ).join("");
+  wrap.innerHTML = allChip + chips;
 }
 
-function buildSubcatChips(subcats) {
-  const wrap = document.getElementById("subcat-chips");
-  if (!wrap) return;
-  if (!subcats.length) { wrap.innerHTML = ""; return; }
-  wrap.innerHTML =
-    `<button class="filter-chip ${!filterSubcategoryId ? 'active' : ''}" onclick="selectSubcat('')">All ${esc(document.getElementById("page-heading").textContent.replace(' Prompts',''))}</button>` +
-    subcats.map(s =>
-      `<button class="filter-chip ${filterSubcategoryId === s.id ? 'active' : ''}"
-         onclick="selectSubcat('${esc(s.id)}')">${esc(s.name)}</button>`
+async function buildSubcategoryChips(catId) {
+  const wrap = document.getElementById("subcat-chips-wrap");
+  const inner = document.getElementById("subcat-chips");
+  if (!wrap || !inner) return;
+  const subs = await getSubcategories(catId).catch(()=>[]);
+  if (!subs.length) { wrap.classList.add("hidden"); return; }
+  wrap.classList.remove("hidden");
+  inner.innerHTML =
+    `<button class="filter-chip ${!currentSubcat?"active":""}" onclick="selectSubcat('')">All</button>` +
+    subs.map(s =>
+      `<button class="filter-chip ${currentSubcat===s.id?"active":""}"
+        onclick="selectSubcat('${s.id}','${esc(s.name)}')">${esc(s.name)}</button>`
     ).join("");
 }
 
 function buildTypeChips() {
-  const wrap = document.getElementById("type-chips");
-  if (!wrap) return;
   const types = [
-    { label:"All",     val:undefined },
-    { label:"Free",    val:false     },
-    { label:"👑 Pro",  val:true      },
+    { val:"", label:"All Types" },
+    { val:"free", label:"✓ Free" },
+    { val:"premium", label:"👑 Premium" },
+    { val:"hot", label:"🔥 Hot" }
   ];
-  wrap.innerHTML = types.map(t =>
-    `<button class="filter-chip ${filterIsPremium === t.val ? 'active' : ''}"
-       onclick="selectType(${t.val === undefined ? 'undefined' : t.val})">${t.label}</button>`
+  document.getElementById("type-chips").innerHTML = types.map(t =>
+    `<button class="filter-chip ${currentType===t.val?"active":""}"
+      onclick="selectType('${t.val}')">${t.label}</button>`
   ).join("");
 }
 
-function buildToolChips(tools) {
-  const wrap = document.getElementById("tool-chips");
-  if (!wrap || !tools.length) return;
-  wrap.innerHTML =
-    `<button class="filter-chip ${!filterToolId ? 'active' : ''}" onclick="selectTool('')">All Tools</button>` +
-    tools.map(t =>
-      `<button class="filter-chip ${filterToolId === t.id ? 'active' : ''}"
-         onclick="selectTool('${esc(t.id)}')">${esc(t.icon || '')} ${esc(t.name)}</button>`
-    ).join("");
+function buildToolSelect(tools) {
+  const sel = document.getElementById("tool-select");
+  if (!sel) return;
+  sel.innerHTML = `<option value="">All Tools</option>` +
+    tools.map(t => `<option value="${esc(t.name)}" ${currentTool===t.name?"selected":""}>${esc(t.name)}</option>`).join("");
+  sel.onchange = () => { currentTool = sel.value; resetAndLoad(); };
 }
 
-// ── Filter actions (window-exposed for onclick) ───────────
-window.selectCat = async (id) => {
-  filterCategoryId    = id;
-  filterSubcategoryId = "";
-  // Mark chips
-  document.querySelectorAll("#cat-chips .filter-chip").forEach(b => {
-    b.classList.toggle("active", b.getAttribute("onclick") === `selectCat('${id}')`);
-  });
-  // Load subcategories
+// Global onclick handlers (called from inline HTML)
+window.selectCat = async (id, name="") => {
+  currentCat = id; currentSubcat = "";
+  document.getElementById("subcat-chips-wrap")?.classList.add("hidden");
+  buildCategoryChips(allCats);
   if (id) {
-    const subcats = await getSubcategories(id).catch(() => []);
-    buildSubcatChips(subcats);
+    await buildSubcategoryChips(id);
+    updatePageMeta(name);
   } else {
-    const wrap = document.getElementById("subcat-chips");
-    if (wrap) wrap.innerHTML = "";
+    document.getElementById("page-heading").textContent = "Browse All Prompts";
   }
-  resetAndLoad();
-};
-
-window.selectSubcat = (id) => {
-  filterSubcategoryId = id;
-  document.querySelectorAll("#subcat-chips .filter-chip").forEach(b => {
-    b.classList.toggle("active", b.getAttribute("onclick") === `selectSubcat('${id}')`);
-  });
-  resetAndLoad();
-};
-
-window.selectType = (val) => {
-  filterIsPremium = val;
   buildTypeChips();
   resetAndLoad();
 };
 
-window.selectTool = (id) => {
-  filterToolId = id;
-  document.querySelectorAll("#tool-chips .filter-chip").forEach(b => {
-    b.classList.toggle("active", b.getAttribute("onclick") === `selectTool('${id}')`);
-  });
+window.selectSubcat = (id) => {
+  currentSubcat = id;
+  document.getElementById("subcat-chips")?.querySelectorAll(".filter-chip")
+    .forEach(b => b.classList.toggle("active", b.getAttribute("onclick")?.includes(`'${id}'`)));
   resetAndLoad();
 };
 
-// ── Load / reload ─────────────────────────────────────────
+window.selectType = (val) => {
+  currentType = val; buildTypeChips(); resetAndLoad();
+};
+
 async function resetAndLoad() {
   currentPage = 0;
-  const grid = document.getElementById("prompts-grid");
-  if (grid) grid.innerHTML = skeletonCards(6);
+  document.getElementById("prompts-grid").innerHTML = skeletonCards(6);
   document.getElementById("load-more-btn")?.classList.add("hidden");
-  await loadMore(true);
+  await loadMore();
 }
 
-async function loadMore(reset = false) {
+async function loadMore() {
   if (isLoading) return;
   isLoading = true;
   const btn  = document.getElementById("load-more-btn");
   const grid = document.getElementById("prompts-grid");
-  if (btn && !reset) btn.textContent = "Loading…";
+  if (btn) btn.textContent = "Loading…";
 
   try {
-    // FIX: correct param names passed to getPrompts()
     const res = await getPrompts({
-      categoryId:    filterCategoryId    || undefined,
-      subcategoryId: filterSubcategoryId || undefined,
-      toolId:        filterToolId        || undefined,
-      search:        filterSearch        || undefined,
-      isPremium:     filterIsPremium,
+      categoryId:    currentCat      || undefined,
+      subcategoryId: currentSubcat   || undefined,
+      toolId:        currentTool     || undefined,
+      search:        currentQ        || undefined,
+      isPremium:     currentType === "premium" ? true : currentType === "free" ? false : undefined,
       page:          currentPage,
     });
-
     const { items, hasMore, total } = res;
-    totalResults = total;
 
-    if (reset || currentPage === 0) {
+    if (currentPage === 0) {
       grid.innerHTML = "";
-    } else {
-      // Remove any skeleton cards
-      grid.querySelectorAll(".skeleton-card").forEach(s => s.remove());
     }
 
     if (!items.length && currentPage === 0) {
-      grid.innerHTML = `
-        <div class="empty-state" style="grid-column:1/-1">
-          <div class="empty-state-icon">🔍</div>
-          <h3>No prompts found</h3>
-          <p style="color:var(--text2)">Try different filters or search terms.</p>
-        </div>`;
-    } else {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;">
+        <div style="font-size:3rem;margin-bottom:12px">🔍</div>
+        <h3 style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px;">No prompts found</h3>
+        <p style="color:var(--text2);">Try different filters or search terms.</p>
+      </div>`;
+    } else if (items.length) {
       grid.innerHTML += items.map(p => renderPromptCard(p)).join("");
       currentPage++;
     }
 
-    // Update count
     const countEl = document.getElementById("result-count");
-    if (countEl) {
-      countEl.textContent = total > 0 ? `${total} prompt${total !== 1 ? "s" : ""}` : "";
-    }
+    if (countEl && total > 0) countEl.textContent = total + " prompt" + (total !== 1 ? "s" : "");
 
-    // Load more button
     if (btn) {
       btn.classList.toggle("hidden", !hasMore);
       btn.textContent = "Load More Prompts";
     }
   } catch (e) {
-    if (grid) grid.innerHTML = `
-      <div class="empty-state" style="grid-column:1/-1">
-        <div class="empty-state-icon">⚠️</div>
-        <p style="color:var(--text2)">Error loading prompts: ${esc(e.message)}</p>
-      </div>`;
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2)">
+      Error loading prompts: ${e.message}</div>`;
   }
   isLoading = false;
 }
+
+function updatePageMeta(catName) {
+  document.getElementById("page-heading").textContent = `${catName} Prompts`;
+  document.title = `${catName} AI Prompts — PromptVault`;
+}
 </script>
 
-<!-- Page header -->
-<div style="padding:80px 20px 24px;text-align:center;background:linear-gradient(180deg,var(--bg) 0%,var(--surface) 100%);">
-  <h1 id="page-heading" style="font-size:clamp(24px,4vw,36px);font-weight:900;color:var(--text);margin-bottom:8px;">
-    Browse AI Prompts
-  </h1>
-  <p style="color:var(--text2);font-size:15px;" id="result-count"></p>
-</div>
+<!-- Page content renders after nav is injected -->
+<main>
+  <div style="max-width:1200px;margin:0 auto;padding:32px 20px 60px;">
 
-<!-- Filters -->
-<div class="section-inner" style="padding-top:0;">
-  <!-- Search -->
-  <div style="margin-bottom:16px;position:relative;">
-    <input id="filter-search" type="search" placeholder="Search prompts, tools, keywords…"
-      style="width:100%;padding:12px 16px 12px 44px;border:1.5px solid var(--border2);border-radius:12px;background:var(--surface);color:var(--text);font-size:14px;outline:none;box-sizing:border-box;"
-      autocomplete="off"/>
-    <svg style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--text2)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-    </svg>
-  </div>
+    <!-- Heading row -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:28px;">
+      <div>
+        <h1 id="page-heading" style="font-size:clamp(1.4rem,3vw,2rem);font-weight:900;margin-bottom:6px;">Browse All Prompts</h1>
+        <p id="result-count" style="font-size:13.5px;color:var(--text2);"></p>
+      </div>
+      <!-- Search in filter bar -->
+      <div style="position:relative;">
+        <svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--text3);"
+          fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input id="filter-search" type="search" placeholder="Search prompts…"
+          style="background:var(--surface);border:1.5px solid var(--border);border-radius:10px;
+                 padding:9px 14px 9px 36px;font-size:13.5px;color:var(--text);outline:none;
+                 width:220px;transition:border-color .2s;"
+          aria-label="Search prompts"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
+      </div>
+    </div>
 
-  <!-- Category chips -->
-  <div style="margin-bottom:8px;">
-    <p style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Category</p>
-    <div class="chips-row" id="cat-chips"></div>
-  </div>
+    <!-- Ad: top of browse page -->
+    <div class="ad-wrap">
+      <p class="ad-label">Advertisement</p>
+      <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+           data-ad-slot="4567890123" data-ad-format="auto" data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
 
-  <!-- Subcategory chips -->
-  <div id="subcat-chips" style="margin-bottom:8px;" class="chips-row"></div>
+    <!-- Category filter -->
+    <div style="margin-bottom:12px;">
+      <p style="font-size:11.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Category</p>
+      <div class="filter-bar" id="cat-chips" role="group" aria-label="Filter by category">
+        <div class="filter-chip" style="animation:sk-pulse 1.5s infinite;pointer-events:none;width:60px;"></div>
+        <div class="filter-chip" style="animation:sk-pulse 1.5s infinite;pointer-events:none;width:70px;"></div>
+        <div class="filter-chip" style="animation:sk-pulse 1.5s infinite;pointer-events:none;width:55px;"></div>
+      </div>
+    </div>
 
-  <!-- Type chips -->
-  <div style="margin-bottom:8px;">
-    <p style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Type</p>
-    <div class="chips-row" id="type-chips"></div>
-  </div>
+    <!-- Subcategory filter (hidden until category selected) -->
+    <div id="subcat-chips-wrap" class="hidden" style="margin-bottom:12px;">
+      <p style="font-size:11.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Subcategory</p>
+      <div class="filter-bar" id="subcat-chips" role="group" aria-label="Filter by subcategory"></div>
+    </div>
 
-  <!-- Tool chips -->
-  <div style="margin-bottom:20px;">
-    <p style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">AI Tool</p>
-    <div class="chips-row" id="tool-chips"></div>
-  </div>
+    <!-- Type + Tool row -->
+    <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:28px;">
+      <div style="flex:1;min-width:0;">
+        <p style="font-size:11.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Type</p>
+        <div class="filter-bar" id="type-chips" role="group" aria-label="Filter by type"></div>
+      </div>
+      <div style="flex-shrink:0;">
+        <p style="font-size:11.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">AI Tool</p>
+        <select class="filter-select" id="tool-select" aria-label="Filter by AI tool">
+          <option value="">All Tools</option>
+        </select>
+      </div>
+    </div>
 
-  <!-- Prompts grid -->
-  <div class="prompts-grid" id="prompts-grid"></div>
+    <!-- Prompts grid -->
+    <div class="prompts-grid prompts-grid-lg" id="prompts-grid" aria-label="Prompts list">
+      <!-- Skeletons shown initially, replaced by JS -->
+    </div>
 
-  <!-- Load more -->
-  <div style="text-align:center;padding:32px 0;">
-    <button id="load-more-btn" class="btn-outline hidden" style="font-size:15px;padding:12px 32px;">
+    <!-- Load more -->
+    <button class="load-more-btn hidden" id="load-more-btn" aria-label="Load more prompts">
       Load More Prompts
     </button>
+
+    <!-- Ad: bottom -->
+    <div class="ad-wrap" style="margin-top:40px;">
+      <p class="ad-label">Advertisement</p>
+      <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+           data-ad-slot="5678901234" data-ad-format="auto" data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
   </div>
-</div>
+</main>
 
 </body>
 </html>

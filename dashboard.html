@@ -9,537 +9,453 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="./css/style.css"/>
 <style>
-  @keyframes pvSpin { to { transform:rotate(360deg); } }
-  .dash-section { display:none; }
-  .dash-section.active { display:block; }
+/* Dashboard-specific styles */
+.dash-grid { display:grid; grid-template-columns:260px 1fr; gap:24px; max-width:1100px; margin:0 auto; padding:80px 20px 60px; }
+@media(max-width:768px) { .dash-grid { grid-template-columns:1fr; } }
+.dash-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; }
+.dash-sidebar-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; height:fit-content; }
+.dash-avatar { width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg,#4f46e5,#7c3aed); color:#fff; font-size:24px; font-weight:800; display:flex; align-items:center; justify-content:center; margin:0 auto 12px; }
+.dash-nav a { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; color:var(--text); text-decoration:none; font-size:14px; font-weight:500; transition:background .15s; margin-bottom:2px; }
+.dash-nav a:hover, .dash-nav a.active { background:var(--surface2); }
+.coin-box { background:linear-gradient(135deg,#fef3c7,#fde68a); border-radius:12px; padding:14px; text-align:center; margin:16px 0; }
+.coin-num { font-size:32px; font-weight:900; color:#b45309; }
+.role-badge { display:inline-flex; align-items:center; gap:4px; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:700; }
+.role-badge.regular { background:#ede9fe; color:#6d28d9; }
+.role-badge.pro { background:#fef3c7; color:#b45309; }
+.stat-box { background:var(--surface2); border-radius:12px; padding:16px; text-align:center; }
+.stat-box-num { font-size:26px; font-weight:900; }
+.stat-box-lbl { font-size:12px; color:var(--text2); margin-top:4px; }
+.tx-row { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); }
+.tx-row:last-child { border-bottom:none; }
+.tx-icon { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+.section-tab { display:none; }
+.section-tab.active { display:block; }
+.upgrade-banner { background:linear-gradient(135deg,#4f46e5,#7c3aed); border-radius:16px; padding:28px; color:#fff; text-align:center; }
+.ref-code-box { font-size:24px; font-weight:900; letter-spacing:4px; color:#4f46e5; background:var(--surface2); padding:16px; border-radius:12px; text-align:center; border:1.5px solid var(--border2); word-break:break-all; }
+.form-field { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+.form-field label { font-size:12px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:.04em; }
+.form-field input, .form-field select, .form-field textarea { width:100%; padding:10px 14px; border:1.5px solid var(--border2); border-radius:10px; background:var(--surface2); color:var(--text); font-size:14px; outline:none; box-sizing:border-box; font-family:inherit; }
+.form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color:#6366f1; }
+.btn-primary-full { width:100%; padding:13px; background:linear-gradient(135deg,#4f46e5,#7c3aed); color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; transition:opacity .2s; }
+.btn-primary-full:hover { opacity:.9; }
+.btn-primary-full:disabled { opacity:.5; cursor:not-allowed; }
+@keyframes dashSpin { to { transform:rotate(360deg); } }
 </style>
 </head>
 <body>
 
-<!-- Loader -->
-<div id="page-loader" style="position:fixed;inset:0;background:var(--bg,#0f0e17);display:flex;align-items:center;justify-content:center;z-index:9999;">
+<!-- Page loader -->
+<div id="pv-loader" style="position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999;">
   <div style="text-align:center;">
-    <div style="width:44px;height:44px;border:3px solid rgba(99,102,241,.3);border-top-color:#6366f1;border-radius:50%;animation:pvSpin 1s linear infinite;margin:0 auto 12px;"></div>
-    <p style="color:rgba(255,255,255,.5);font-size:14px;">Loading dashboard…</p>
+    <div style="width:44px;height:44px;border:3px solid rgba(99,102,241,.25);border-top-color:#6366f1;border-radius:50%;animation:dashSpin 1s linear infinite;margin:0 auto 12px;"></div>
+    <p style="color:var(--text2);font-size:14px;">Loading…</p>
   </div>
 </div>
 
-<div id="page-content" style="display:none;">
-  <div id="nav-slot"></div>
+<div id="pv-page" style="display:none;">
 
-  <div style="max-width:1100px;margin:0 auto;padding:80px 20px 40px;">
+<div class="dash-grid">
 
-    <!-- Welcome banner — FIX: removed duplicate display:flex, now hidden by default -->
-    <div id="welcome-banner" style="display:none;align-items:center;justify-content:space-between;gap:16px;background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:16px;padding:20px 24px;color:#fff;margin-bottom:24px;">
-      <div>
-        <h2 style="font-size:18px;font-weight:800;margin-bottom:4px;">🎉 Welcome to PromptVault!</h2>
-        <p style="font-size:14px;opacity:.85;">Your account is ready. Browse prompts, earn coins, and unlock premium content.</p>
+  <!-- ── Sidebar ─────────────────────────────────────── -->
+  <aside>
+    <div class="dash-sidebar-card">
+      <div class="dash-avatar" id="sb-avatar">U</div>
+      <div style="text-align:center;margin-bottom:16px;">
+        <h3 id="sb-name" style="font-size:16px;font-weight:700;color:var(--text);">Loading…</h3>
+        <p id="sb-email" style="font-size:12px;color:var(--text2);margin:2px 0 8px;"></p>
+        <span id="sb-role" class="role-badge regular">Regular</span>
       </div>
-      <button onclick="this.parentElement.style.display='none'" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:13px;flex-shrink:0;">Dismiss</button>
+      <div class="coin-box">
+        <div class="coin-num" id="sb-coins">0</div>
+        <div style="font-size:12px;color:#92400e;margin-top:2px;">🪙 PromptCoins</div>
+      </div>
+      <nav class="dash-nav" id="dash-nav">
+        <a href="#overview"  onclick="goto('overview',this);return false;">📊 Overview</a>
+        <a href="#saved"     onclick="goto('saved',this);return false;">🔖 Saved Prompts</a>
+        <a href="#coins"     onclick="goto('coins',this);return false;">🪙 Coin History</a>
+        <a href="#referral"  onclick="goto('referral',this);return false;">🔗 Referral</a>
+        <a href="#upgrade"   onclick="goto('upgrade',this);return false;" id="link-upgrade">⭐ Upgrade to Pro</a>
+        <a href="#submit"    onclick="goto('submit',this);return false;" id="link-submit" style="display:none;">📝 Submit Prompt</a>
+      </nav>
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+        <button id="btn-logout" style="width:100%;padding:10px;background:none;border:1.5px solid var(--border2);border-radius:10px;color:#ef4444;font-size:13px;font-weight:600;cursor:pointer;">Sign Out</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main panels ────────────────────────────────── -->
+  <main>
+
+    <!-- OVERVIEW -->
+    <div id="tab-overview" class="section-tab active">
+      <!-- Welcome banner (hidden by default) -->
+      <div id="welcome-banner" style="display:none;background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:16px;padding:18px 20px;color:#fff;margin-bottom:20px;flex-direction:row;align-items:center;justify-content:space-between;gap:12px;">
+        <div>
+          <h3 style="font-size:16px;font-weight:800;margin-bottom:4px;">🎉 Welcome to PromptVault!</h3>
+          <p style="font-size:13px;opacity:.85;">Your account is ready. Start exploring and earning coins!</p>
+        </div>
+        <button onclick="document.getElementById('welcome-banner').style.display='none'" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:12px;flex-shrink:0;">Dismiss</button>
+      </div>
+      <div class="dash-card">
+        <h2 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:16px;">Overview</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;">
+          <div class="stat-box"><div class="stat-box-num" id="ov-coins" style="color:#6366f1;">0</div><div class="stat-box-lbl">Total Coins</div></div>
+          <div class="stat-box"><div class="stat-box-num" id="ov-saved" style="color:#10b981;">0</div><div class="stat-box-lbl">Saved Prompts</div></div>
+          <div class="stat-box"><div class="stat-box-num" id="ov-refs" style="color:#f59e0b;">0</div><div class="stat-box-lbl">Referrals</div></div>
+          <div class="stat-box"><div class="stat-box-num" id="ov-tier" style="color:#7c3aed;font-size:16px;">—</div><div class="stat-box-lbl">Account Tier</div></div>
+        </div>
+      </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:260px 1fr;gap:28px;" id="dash-layout">
+    <!-- SAVED PROMPTS -->
+    <div id="tab-saved" class="section-tab">
+      <div class="dash-card">
+        <h2 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:16px;">🔖 Saved Prompts</h2>
+        <div id="saved-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;"></div>
+      </div>
+    </div>
 
-      <!-- ── Sidebar ─────────────────────────────── -->
-      <aside class="dash-sidebar">
-        <div class="dash-avatar" id="dash-avatar">U</div>
-        <div class="dash-user-info">
-          <h3 id="dash-name" style="font-size:16px;font-weight:700;color:var(--text);">Loading…</h3>
-          <p id="dash-email" style="font-size:12px;color:var(--text2);margin:2px 0 8px;"></p>
-          <span id="dash-role-badge" class="dash-role-badge regular">Regular</span>
+    <!-- COIN HISTORY -->
+    <div id="tab-coins" class="section-tab">
+      <div class="dash-card">
+        <h2 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px;">🪙 Coin History</h2>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Every coin earned and spent.</p>
+        <div id="coin-history"></div>
+      </div>
+    </div>
+
+    <!-- REFERRAL -->
+    <div id="tab-referral" class="section-tab">
+      <div class="dash-card">
+        <h2 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:16px;">🔗 Referral Program</h2>
+        <p style="font-size:14px;color:var(--text2);margin-bottom:20px;">Share your link — earn coins for every new user who joins through it!</p>
+
+        <div style="background:linear-gradient(135deg,#ede9fe,#ddd6fe);border-radius:12px;padding:16px;text-align:center;margin-bottom:20px;">
+          <div style="font-size:28px;font-weight:900;color:#4f46e5;" id="ref-reward-display">10</div>
+          <div style="font-size:13px;color:#6d28d9;margin-top:2px;">🪙 Coins per referral</div>
         </div>
-        <div class="dash-coin-box">
-          <div class="dash-coin-num" id="dash-coins">0</div>
-          <div style="font-size:12px;color:#92400e;margin-top:2px;">🪙 PromptCoins</div>
+
+        <div style="margin-bottom:16px;">
+          <p style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">Your Referral Code</p>
+          <div class="ref-code-box" id="ref-code-box">Generating…</div>
         </div>
-        <nav class="dash-nav">
-          <a href="#overview"  onclick="showSection('overview',this)">📊 Overview</a>
-          <a href="#saved"     onclick="showSection('saved',this)">🔖 Saved Prompts</a>
-          <a href="#coins"     onclick="showSection('coins',this)">🪙 Coin History</a>
-          <a href="#referral"  onclick="showSection('referral',this)">🔗 Referral</a>
-          <a href="#upgrade"   onclick="showSection('upgrade',this)" id="nav-upgrade-link">⭐ Upgrade to Pro</a>
-          <a href="#submit"    onclick="showSection('submit',this)" id="nav-submit-link" style="display:none;">📝 Submit Prompt</a>
-        </nav>
-        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
-          <button id="btn-logout" style="width:100%;padding:10px;background:none;border:1.5px solid var(--border2);border-radius:10px;color:#ef4444;font-size:13px;font-weight:600;cursor:pointer;">Sign Out</button>
+
+        <div style="margin-bottom:20px;">
+          <p style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">Your Referral Link</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input type="text" id="ref-link-input" readonly
+              style="flex:1;min-width:180px;padding:10px 14px;border:1.5px solid var(--border2);border-radius:10px;background:var(--surface2);font-size:12px;color:var(--text);outline:none;"/>
+            <button id="btn-copy-ref"
+              style="padding:10px 18px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">
+              📋 Copy
+            </button>
+          </div>
         </div>
-      </aside>
 
-      <!-- ── Main sections ──────────────────────── -->
-      <main style="display:flex;flex-direction:column;gap:24px;min-width:0;">
+        <div id="ref-stats"></div>
+      </div>
+    </div>
 
-        <!-- OVERVIEW -->
-        <section id="sec-overview" class="dash-section active">
-          <div class="dash-section" style="background:var(--surface);border:1.5px solid var(--border);border-radius:18px;padding:24px;display:block;">
-            <h2 style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:16px;">Overview</h2>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;">
-              <div style="background:var(--surface2);border-radius:12px;padding:16px;text-align:center;">
-                <div style="font-size:26px;font-weight:900;color:#6366f1;" id="ov-coins">0</div>
-                <div style="font-size:12px;color:var(--text2);margin-top:4px;">Total Coins</div>
-              </div>
-              <div style="background:var(--surface2);border-radius:12px;padding:16px;text-align:center;">
-                <div style="font-size:26px;font-weight:900;color:#10b981;" id="ov-saved">0</div>
-                <div style="font-size:12px;color:var(--text2);margin-top:4px;">Saved Prompts</div>
-              </div>
-              <div style="background:var(--surface2);border-radius:12px;padding:16px;text-align:center;">
-                <div style="font-size:26px;font-weight:900;color:#f59e0b;" id="ov-referrals">0</div>
-                <div style="font-size:12px;color:var(--text2);margin-top:4px;">Referrals</div>
-              </div>
-              <div style="background:var(--surface2);border-radius:12px;padding:16px;text-align:center;">
-                <div style="font-size:26px;font-weight:900;color:#7c3aed;" id="ov-role">—</div>
-                <div style="font-size:12px;color:var(--text2);margin-top:4px;">Account Tier</div>
-              </div>
+    <!-- UPGRADE -->
+    <div id="tab-upgrade" class="section-tab">
+      <div class="dash-card">
+        <h2 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:16px;">⭐ Upgrade to Pro</h2>
+        <div id="upgrade-content">
+          <div class="upgrade-banner">
+            <div style="font-size:40px;margin-bottom:12px;">⭐</div>
+            <h3 style="font-size:22px;font-weight:900;margin-bottom:8px;">PromptVault Pro</h3>
+            <p style="opacity:.8;font-size:14px;margin-bottom:16px;">One-time coin upgrade · No monthly fees</p>
+            <ul style="list-style:none;padding:0;margin:0 0 20px;text-align:left;display:inline-block;">
+              <li style="padding:4px 0;font-size:14px;">✓ All premium prompts unlocked</li>
+              <li style="padding:4px 0;font-size:14px;">✓ Zero ads, forever</li>
+              <li style="padding:4px 0;font-size:14px;">✓ Submit prompts &amp; earn coins</li>
+              <li style="padding:4px 0;font-size:14px;">✓ Priority support</li>
+            </ul>
+            <div style="font-size:28px;font-weight:900;margin-bottom:4px;">
+              <span id="pro-cost-display">100</span> 🪙 Coins
+            </div>
+            <p style="font-size:12px;opacity:.7;margin-bottom:20px;">Your balance: <span id="pro-balance-display">0</span> coins</p>
+            <button id="btn-upgrade" style="padding:12px 32px;background:#fff;color:#4f46e5;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;transition:opacity .2s;">
+              ⭐ Upgrade Now
+            </button>
+          </div>
+          <div style="margin-top:20px;background:var(--surface2);border-radius:12px;padding:16px;">
+            <h3 style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px;">💡 How to Earn Coins</h3>
+            <div style="display:flex;flex-direction:column;gap:7px;font-size:13px;color:var(--text2);">
+              <div>🔗 Refer friends → earn coins per signup</div>
+              <div>📝 Submit prompts (Pro) → earn when approved by admin</div>
             </div>
           </div>
-        </section>
+        </div>
+        <div id="already-pro" style="display:none;text-align:center;padding:40px 20px;">
+          <div style="font-size:52px;margin-bottom:12px;">⭐</div>
+          <h3 style="font-size:20px;font-weight:800;color:var(--text);">You're a Pro member!</h3>
+          <p style="color:var(--text2);margin-top:8px;font-size:14px;">Enjoy all premium features. Thank you for your support!</p>
+        </div>
+      </div>
+    </div>
 
-        <!-- SAVED PROMPTS -->
-        <section id="sec-saved" class="dash-section">
-          <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:18px;padding:24px;">
-            <h2 style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:16px;">🔖 Saved Prompts</h2>
-            <div id="saved-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;">
-              <p style="color:var(--text2);font-size:14px;">Loading…</p>
-            </div>
-          </div>
-        </section>
+    <!-- SUBMIT PROMPT (Pro only) -->
+    <div id="tab-submit" class="section-tab">
+      <div class="dash-card">
+        <h2 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:16px;">📝 Submit a Prompt</h2>
+        <div id="submit-gate" style="display:none;background:linear-gradient(135deg,#1e1b4b,#3730a3);border-radius:14px;padding:28px;text-align:center;color:#fff;">
+          <div style="font-size:36px;margin-bottom:10px;">🔒</div>
+          <h3 style="font-size:17px;font-weight:800;margin-bottom:6px;">Pro Feature</h3>
+          <p style="opacity:.8;font-size:13px;margin-bottom:16px;">Only Pro members can submit prompts and earn coins per approval.</p>
+          <button onclick="goto('upgrade',document.querySelector('#dash-nav a[href=\"#upgrade\"]'))" style="padding:10px 22px;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.35);border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">⭐ Upgrade to Pro</button>
+        </div>
+        <div id="submit-form-wrap" style="display:none;">
+          <p style="font-size:13px;color:var(--text2);margin-bottom:20px;">You'll earn <strong id="submit-reward-display">20</strong> 🪙 coins when your prompt is approved.</p>
+          <div class="form-field"><label>Prompt Title *</label><input id="sub-title" type="text" placeholder="Short descriptive title"/></div>
+          <div class="form-field"><label>Category *</label><select id="sub-cat"><option value="">Select category…</option></select></div>
+          <div class="form-field"><label>AI Tool *</label><input id="sub-tool" type="text" placeholder="e.g. Midjourney, ChatGPT, Claude"/></div>
+          <div class="form-field"><label>Prompt Text *</label><textarea id="sub-content" rows="6" placeholder="Your full prompt here…"></textarea></div>
+          <div class="form-field"><label>Description (optional)</label><textarea id="sub-desc" rows="2" placeholder="What does this prompt do?"></textarea></div>
+          <div class="form-field"><label>Tags (comma-separated)</label><input id="sub-tags" type="text" placeholder="art, portrait, creative"/></div>
+          <button class="btn-primary-full" id="btn-submit-prompt">Submit for Review</button>
+        </div>
+      </div>
+    </div>
 
-        <!-- COIN HISTORY -->
-        <section id="sec-coins" class="dash-section">
-          <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:18px;padding:24px;">
-            <h2 style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:16px;">🪙 Coin History</h2>
-            <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Every coin you've earned and spent.</p>
-            <div id="coin-tx-list"><p style="color:var(--text2);font-size:14px;">Loading…</p></div>
-          </div>
-        </section>
-
-        <!-- REFERRAL -->
-        <section id="sec-referral" class="dash-section">
-          <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:18px;padding:24px;">
-            <h2 style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:16px;">🔗 Referral Program</h2>
-            <p style="font-size:14px;color:var(--text2);margin-bottom:20px;">Share your link and earn coins for every new user who signs up!</p>
-            <div style="background:linear-gradient(135deg,#ede9fe,#ddd6fe);border-radius:14px;padding:18px;margin-bottom:20px;text-align:center;">
-              <div style="font-size:32px;font-weight:900;color:#4f46e5;" id="ref-reward">…</div>
-              <div style="font-size:13px;color:#6d28d9;margin-top:2px;">🪙 Coins per successful referral</div>
-            </div>
-
-            <!-- Referral code display -->
-            <div style="margin-bottom:16px;">
-              <p style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">Your Referral Code</p>
-              <div id="ref-code-display"
-                style="font-size:22px;font-weight:900;letter-spacing:4px;color:#4f46e5;background:var(--surface2);padding:16px;border-radius:12px;text-align:center;border:1.5px solid var(--border2);">
-                Loading…
-              </div>
-            </div>
-
-            <!-- Referral link copy -->
-            <div style="margin-bottom:20px;">
-              <p style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">Your Referral Link</p>
-              <div style="display:flex;gap:8px;">
-                <input type="text" id="ref-link-input" readonly
-                  style="flex:1;padding:10px 14px;border:1.5px solid var(--border2);border-radius:10px;background:var(--surface2);font-size:13px;color:var(--text);outline:none;min-width:0;"
-                  placeholder="Loading your referral link…"/>
-                <button id="btn-copy-ref"
-                  style="padding:10px 18px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">
-                  Copy Link
-                </button>
-              </div>
-            </div>
-
-            <!-- Referral stats -->
-            <div id="referral-stats"></div>
-          </div>
-        </section>
-
-        <!-- UPGRADE -->
-        <section id="sec-upgrade" class="dash-section">
-          <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:18px;padding:24px;">
-            <h2 style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:16px;">⭐ Upgrade to Pro</h2>
-            <div id="upgrade-card" class="upgrade-card">
-              <div style="font-size:40px;margin-bottom:12px;">⭐</div>
-              <h3 style="font-size:24px;font-weight:900;margin-bottom:8px;">PromptVault Pro</h3>
-              <p style="opacity:.8;font-size:14px;">One-time coin purchase — no monthly fees</p>
-              <ul class="upgrade-features">
-                <li>Access ALL premium prompts</li>
-                <li>No ads, ever</li>
-                <li>Submit prompts &amp; earn coins</li>
-                <li>Priority support</li>
-              </ul>
-              <div style="font-size:28px;font-weight:900;margin:16px 0 4px;">
-                <span id="pro-cost">…</span> 🪙 Coins
-              </div>
-              <p style="font-size:12px;opacity:.7;margin-bottom:20px;">Current balance: <span id="current-coins-display">0</span> coins</p>
-              <button class="btn-upgrade" id="btn-upgrade-pro">⭐ Upgrade Now</button>
-            </div>
-            <div id="already-pro" style="display:none;text-align:center;padding:32px 20px;">
-              <div style="font-size:52px;margin-bottom:12px;">⭐</div>
-              <h3 style="font-size:20px;font-weight:800;color:var(--text);">You're a Pro member!</h3>
-              <p style="color:var(--text2);margin-top:8px;">Enjoy all premium features. Thank you for your support!</p>
-            </div>
-            <div style="margin-top:24px;background:var(--surface2);border-radius:14px;padding:18px;">
-              <h3 style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px;">💡 How to Earn More Coins</h3>
-              <div style="display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--text2);">
-                <div>🔗 Refer friends — earn coins per signup</div>
-                <div>📝 Submit prompts (Pro) — earn when approved</div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- SUBMIT PROMPT -->
-        <section id="sec-submit" class="dash-section">
-          <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:18px;padding:24px;">
-            <h2 style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:16px;">📝 Submit a Prompt</h2>
-            <div id="submit-gate" style="display:none;background:linear-gradient(135deg,#1e1b4b,#3730a3);border-radius:16px;padding:28px;text-align:center;color:#fff;">
-              <div style="font-size:40px;margin-bottom:12px;">🔒</div>
-              <h3 style="font-size:18px;font-weight:800;margin-bottom:8px;">Pro Feature</h3>
-              <p style="opacity:.8;font-size:14px;margin-bottom:20px;">Only Pro members can submit prompts and earn coins.</p>
-              <button onclick="showSection('upgrade',document.querySelector('.dash-nav a[href=\'#upgrade\']'))"
-                style="padding:12px 24px;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.4);border-radius:12px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;">
-                Upgrade to Pro →
-              </button>
-            </div>
-            <div id="submit-form" style="display:none;">
-              <p style="font-size:14px;color:var(--text2);margin-bottom:20px;">
-                Submit your prompt for admin review. You'll earn
-                <strong id="submit-reward">20</strong> 🪙 coins when it's approved.
-              </p>
-              <div style="display:flex;flex-direction:column;gap:14px;">
-                <div>
-                  <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Prompt Title *</label>
-                  <input id="sub-title" type="text" style="width:100%;padding:10px 14px;border:1.5px solid var(--border2);border-radius:10px;background:var(--surface2);color:var(--text);font-size:14px;outline:none;box-sizing:border-box;" placeholder="Descriptive title for your prompt"/>
-                </div>
-                <div>
-                  <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Category *</label>
-                  <select id="sub-category" style="width:100%;padding:10px 14px;border:1.5px solid var(--border2);border-radius:10px;background:var(--surface2);color:var(--text);font-size:14px;outline:none;box-sizing:border-box;">
-                    <option value="">Select category…</option>
-                  </select>
-                </div>
-                <div>
-                  <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">AI Tool *</label>
-                  <input id="sub-tool" type="text" style="width:100%;padding:10px 14px;border:1.5px solid var(--border2);border-radius:10px;background:var(--surface2);color:var(--text);font-size:14px;outline:none;box-sizing:border-box;" placeholder="e.g. Midjourney, ChatGPT, Claude"/>
-                </div>
-                <div>
-                  <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Prompt Content *</label>
-                  <textarea id="sub-content" rows="6" style="width:100%;padding:10px 14px;border:1.5px solid var(--border2);border-radius:10px;background:var(--surface2);color:var(--text);font-size:14px;outline:none;resize:vertical;box-sizing:border-box;" placeholder="Your full prompt here…"></textarea>
-                </div>
-                <div>
-                  <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Description (optional)</label>
-                  <textarea id="sub-desc" rows="2" style="width:100%;padding:10px 14px;border:1.5px solid var(--border2);border-radius:10px;background:var(--surface2);color:var(--text);font-size:14px;outline:none;resize:vertical;box-sizing:border-box;" placeholder="What does this prompt do?"></textarea>
-                </div>
-                <div>
-                  <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Tags (comma-separated)</label>
-                  <input id="sub-tags" type="text" style="width:100%;padding:10px 14px;border:1.5px solid var(--border2);border-radius:10px;background:var(--surface2);color:var(--text);font-size:14px;outline:none;box-sizing:border-box;" placeholder="art, portrait, creative"/>
-                </div>
-                <button id="btn-submit-prompt"
-                  style="padding:13px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .2s;">
-                  Submit for Review
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-      </main>
-    </div><!-- /dash-layout -->
-  </div>
-</div><!-- /page-content -->
+  </main>
+</div><!-- /dash-grid -->
+</div><!-- /pv-page -->
 
 <script type="module">
 import { auth, onAuthReady, upgradeToPro, getCoinHistory, getCoinConfig, toggleSavePrompt } from "./js/auth.js";
 import { injectNav, injectFooter } from "./js/nav.js";
 import { getAppConfig, getCategories, getPromptById, submitPrompt } from "./js/db.js";
-import { toast, copyText } from "./js/ui.js";
+import { copyText } from "./js/ui.js";
 import { db } from "./js/firebase.js";
-import { doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
-let currentUser    = null;
-let currentProfile = null;
+let _user = null, _profile = null;
 
-// ── Section routing ───────────────────────────────────────
-window.showSection = function(name, link) {
-  // Hide all sections
-  document.querySelectorAll(".dash-section").forEach(s => s.classList.remove("active"));
-  // Show target
-  const sec = document.getElementById("sec-" + name);
-  if (sec) sec.classList.add("active");
-  // Update nav highlight
-  document.querySelectorAll(".dash-nav a").forEach(a => a.classList.remove("active"));
-  if (link) link.classList.add("active");
-  // Prevent default anchor scroll
-  event?.preventDefault();
+// ── Section router ──────────────────────────────────────
+window.goto = function(name, linkEl) {
+  document.querySelectorAll(".section-tab").forEach(t => t.classList.remove("active"));
+  const tab = document.getElementById("tab-" + name);
+  if (tab) tab.classList.add("active");
+  document.querySelectorAll("#dash-nav a").forEach(a => a.classList.remove("active"));
+  if (linkEl) linkEl.classList.add("active");
 };
 
-// ── Auth guard ────────────────────────────────────────────
+// ── Auth guard ──────────────────────────────────────────
 onAuthReady(async (user, profile) => {
-  if (!user) {
-    window.location.href = "./auth.html?next=dashboard.html";
-    return;
-  }
-  currentUser    = user;
-  currentProfile = profile;
+  if (!user) { window.location.href = "./auth.html?next=dashboard.html"; return; }
+  _user = user; _profile = profile;
 
-  const cfg = await getAppConfig().catch(() => ({}));
+  const cfg = await getAppConfig().catch(()=>({}));
   injectNav(cfg);
   injectFooter(cfg);
 
-  // Hide loader, show content
-  document.getElementById("page-loader").style.display  = "none";
-  document.getElementById("page-content").style.display = "";
+  document.getElementById("pv-loader").style.display = "none";
+  document.getElementById("pv-page").style.display  = "";
 
-  // Populate sidebar
+  // Sidebar
   const name     = profile?.displayName || user.displayName || "User";
   const coins    = profile?.coins ?? 0;
   const role     = profile?.role  || "regular";
-  const initials = name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2) || "U";
+  const initials = name.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2) || "U";
 
-  document.getElementById("dash-avatar").textContent = initials;
-  document.getElementById("dash-name").textContent   = name;
-  document.getElementById("dash-email").textContent  = user.email || "";
-  document.getElementById("dash-coins").textContent  = coins;
+  document.getElementById("sb-avatar").textContent = initials;
+  document.getElementById("sb-name").textContent   = name;
+  document.getElementById("sb-email").textContent  = user.email || "";
+  document.getElementById("sb-coins").textContent  = coins;
+  const rb = document.getElementById("sb-role");
+  if (rb) { rb.textContent = role==="pro" ? "⭐ Pro Member" : "Regular"; rb.className="role-badge "+(role==="pro"?"pro":"regular"); }
 
-  const badge = document.getElementById("dash-role-badge");
-  if (badge) {
-    badge.textContent = role === "pro" ? "⭐ Pro Member" : "Regular";
-    badge.className   = "dash-role-badge " + role;
+  // Pro-specific nav
+  if (role==="pro") {
+    document.getElementById("link-upgrade").style.display = "none";
+    document.getElementById("link-submit").style.display  = "";
   }
 
-  // Overview stats
-  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  set("ov-coins", coins);
-  set("ov-saved", (profile?.savedPrompts || []).length);
-  set("ov-role",  role === "pro" ? "Pro ⭐" : "Regular");
-
-  // Count referrals
-  try {
-    const refSnap = await getDocs(query(collection(db, "referrals"), where("referrerId", "==", user.uid)));
-    set("ov-referrals", refSnap.size);
-  } catch {}
-
-  // Pro-specific UI
-  if (role === "pro") {
-    const upgradeLink = document.getElementById("nav-upgrade-link");
-    const submitLink  = document.getElementById("nav-submit-link");
-    if (upgradeLink) upgradeLink.style.display = "none";
-    if (submitLink)  submitLink.style.display  = "";
-  }
-
-  // FIX: welcome banner — only show when welcome=1, use display:flex not block
-  if (new URLSearchParams(location.search).get("welcome") === "1") {
+  // Welcome banner
+  if (new URLSearchParams(location.search).get("welcome")==="1") {
     const wb = document.getElementById("welcome-banner");
     if (wb) wb.style.display = "flex";
   }
 
-  // Route to hash section
-  const hash = window.location.hash.replace("#", "") || "overview";
-  const hashLink = document.querySelector(`.dash-nav a[href="#${hash}"]`);
-  window.showSection(hash, hashLink);
+  // Overview stats
+  document.getElementById("ov-coins").textContent = coins;
+  document.getElementById("ov-saved").textContent = (profile?.savedPrompts||[]).length;
+  document.getElementById("ov-tier").textContent  = role==="pro" ? "Pro ⭐" : "Regular";
+  try {
+    const rsnap = await getDocs(query(collection(db,"referrals"), where("referrerId","==",user.uid)));
+    document.getElementById("ov-refs").textContent = rsnap.size;
+  } catch {}
+
+  // Route to URL hash
+  const hash = window.location.hash.replace("#","") || "overview";
+  const linkEl = document.querySelector(`#dash-nav a[href="#${hash}"]`);
+  goto(hash, linkEl);
 
   // Init all sections
-  await initReferral(profile);
-  await initUpgrade(profile);
-  await initCoinHistory(user.uid);
-  await initSavedPrompts(profile?.savedPrompts || []);
-  await initSubmit(role);
+  initReferral(profile);
+  initUpgrade(profile);
+  initCoinHistory(user.uid);
+  initSaved(profile?.savedPrompts||[]);
+  initSubmit(role);
 
-  // Logout
-  document.getElementById("btn-logout")?.addEventListener("click", async () => {
-    try {
-      const { logout } = await import("./js/auth.js");
-      await logout();
-    } catch { window.location.href = "./index.html"; }
+  document.getElementById("btn-logout").addEventListener("click", async () => {
+    const { logout } = await import("./js/auth.js");
+    await logout();
   });
 });
 
-// ── Referral section ──────────────────────────────────────
+// ── Referral ──────────────────────────────────────────
 async function initReferral(profile) {
-  const coinCfg  = await getCoinConfig();
-  const code     = profile?.referralCode || "";
+  const coinCfg = await getCoinConfig();
+  document.getElementById("ref-reward-display").textContent = coinCfg.referralReward;
+
+  // FIX: generate code if missing
+  let code = profile?.referralCode || "";
+  if (!code && _user) {
+    // Try fetching fresh from Firestore
+    try {
+      const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js");
+      const snap = await getDoc(doc(db,"users",_user.uid));
+      code = snap.exists() ? (snap.data().referralCode||"") : "";
+    } catch {}
+  }
+  if (!code) code = "Loading…";
+
+  document.getElementById("ref-code-box").textContent = code;
+
   const origin   = window.location.origin;
-  const basePath = window.location.pathname.replace("dashboard.html", "");
-  const link     = `${origin}${basePath}auth.html?tab=register&ref=${code}`;
+  const basePath = window.location.pathname.replace("dashboard.html","");
+  const link     = code && code!=="Loading…"
+    ? `${origin}${basePath}auth.html?tab=register&ref=${code}`
+    : "Sign in to get your referral link";
+  document.getElementById("ref-link-input").value = link;
 
-  // FIX: ensure these IDs exist before setting
-  const rewardEl = document.getElementById("ref-reward");
-  const codeEl   = document.getElementById("ref-code-display");
-  const linkEl   = document.getElementById("ref-link-input");
-
-  if (rewardEl) rewardEl.textContent = coinCfg.referralReward;
-  if (codeEl)   codeEl.textContent   = code || "—";
-  if (linkEl)   linkEl.value         = link;
-
-  document.getElementById("btn-copy-ref")?.addEventListener("click", () => {
-    copyText(link, document.getElementById("btn-copy-ref"));
+  document.getElementById("btn-copy-ref").addEventListener("click", () => {
+    if (link.startsWith("http")) copyText(link, document.getElementById("btn-copy-ref"));
   });
 
-  // Referral stats
   try {
-    const snap   = await getDocs(query(collection(db, "referrals"), where("referrerId", "==", currentUser.uid)));
+    const snap = await getDocs(query(collection(db,"referrals"), where("referrerId","==",_user.uid)));
     const total  = snap.size;
-    const earned = snap.docs.reduce((s, d) => s + (d.data().coinsAwarded || 0), 0);
-    const statsEl = document.getElementById("referral-stats");
-    if (statsEl) {
-      statsEl.innerHTML = `
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-          <div style="background:var(--surface2);border-radius:12px;padding:14px;text-align:center;">
-            <div style="font-size:24px;font-weight:900;color:#6366f1;">${total}</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:2px;">Total referrals</div>
-          </div>
-          <div style="background:var(--surface2);border-radius:12px;padding:14px;text-align:center;">
-            <div style="font-size:24px;font-weight:900;color:#10b981;">🪙 ${earned}</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:2px;">Coins earned</div>
-          </div>
-        </div>`;
-    }
+    const earned = snap.docs.reduce((s,d)=>s+(d.data().coinsAwarded||0),0);
+    document.getElementById("ref-stats").innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;">
+        <div class="stat-box"><div class="stat-box-num" style="color:#6366f1;">${total}</div><div class="stat-box-lbl">Total referrals</div></div>
+        <div class="stat-box"><div class="stat-box-num" style="color:#10b981;">🪙 ${earned}</div><div class="stat-box-lbl">Coins earned</div></div>
+      </div>`;
   } catch {}
 }
 
-// ── Upgrade section ───────────────────────────────────────
+// ── Upgrade ───────────────────────────────────────────
 async function initUpgrade(profile) {
   const coinCfg = await getCoinConfig();
-  const costEl  = document.getElementById("pro-cost");
-  const balEl   = document.getElementById("current-coins-display");
-  if (costEl) costEl.textContent = coinCfg.proMembershipCost;
-  if (balEl)  balEl.textContent  = profile?.coins ?? 0;
+  document.getElementById("pro-cost-display").textContent    = coinCfg.proMembershipCost;
+  document.getElementById("pro-balance-display").textContent = profile?.coins ?? 0;
 
-  if (profile?.role === "pro") {
-    const card = document.getElementById("upgrade-card");
-    const done = document.getElementById("already-pro");
-    if (card) card.style.display = "none";
-    if (done) done.style.display = "";
-  } else {
-    document.getElementById("btn-upgrade-pro")?.addEventListener("click", async () => {
-      const btn = document.getElementById("btn-upgrade-pro");
-      if (btn) { btn.disabled = true; btn.textContent = "Processing…"; }
-      try {
-        await upgradeToPro(currentUser.uid);
-        toast("🎉 Welcome to Pro! Page will reload…", "success", 4000);
-        setTimeout(() => location.reload(), 2500);
-      } catch (e) {
-        toast(e.message, "error");
-        if (btn) { btn.disabled = false; btn.textContent = "⭐ Upgrade Now"; }
-      }
-    });
+  if (profile?.role==="pro") {
+    document.getElementById("upgrade-content").style.display = "none";
+    document.getElementById("already-pro").style.display     = "";
+    return;
   }
+  document.getElementById("btn-upgrade").addEventListener("click", async () => {
+    const btn = document.getElementById("btn-upgrade");
+    btn.disabled=true; btn.textContent="Processing…";
+    try {
+      await upgradeToPro(_user.uid);
+      const { toast } = await import("./js/ui.js");
+      toast("🎉 Welcome to Pro! Reloading…","success",4000);
+      setTimeout(()=>location.reload(), 2500);
+    } catch(e) {
+      const { toast } = await import("./js/ui.js");
+      toast(e.message,"error");
+      btn.disabled=false; btn.textContent="⭐ Upgrade Now";
+    }
+  });
 }
 
-// ── Coin history ──────────────────────────────────────────
+// ── Coin history ──────────────────────────────────────
 async function initCoinHistory(uid) {
   const txs = await getCoinHistory(uid, 30);
-  const el  = document.getElementById("coin-tx-list");
-  if (!el) return;
-
+  const el  = document.getElementById("coin-history");
   if (!txs.length) {
     el.innerHTML = `<p style="color:var(--text2);font-size:14px;">No transactions yet. Earn coins by referring friends!</p>`;
     return;
   }
   el.innerHTML = txs.map(tx => {
-    const isEarn = tx.type === "earn";
-    const date   = tx.createdAt?.toDate
-      ? tx.createdAt.toDate().toLocaleDateString("en-GB", {day:"2-digit",month:"short",year:"numeric"})
-      : (tx.createdAt?.seconds ? new Date(tx.createdAt.seconds * 1000).toLocaleDateString("en-GB") : "—");
-    return `
-      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
-        <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:${isEarn ? "#dcfce7" : "#fef2f2"}">
-          ${isEarn ? "🪙" : "💸"}
-        </div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:14px;color:var(--text);font-weight:500;">${tx.description || "Transaction"}</div>
-          <div style="font-size:12px;color:var(--text2);">${date}</div>
-        </div>
-        <div style="font-weight:700;color:${isEarn ? "#16a34a" : "#dc2626"};white-space:nowrap;">
-          ${isEarn ? "+" : ""}${tx.amount} 🪙
-        </div>
-      </div>`;
+    const earn = tx.type==="earn";
+    const date = tx.createdAt?.seconds
+      ? new Date(tx.createdAt.seconds*1000).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"})
+      : "—";
+    return `<div class="tx-row">
+      <div class="tx-icon" style="background:${earn?"#dcfce7":"#fef2f2"}">${earn?"🪙":"💸"}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${tx.description||"Transaction"}</div>
+        <div style="font-size:11px;color:var(--text2)">${date}</div>
+      </div>
+      <div style="font-weight:700;font-size:13px;color:${earn?"#16a34a":"#dc2626"};white-space:nowrap">${earn?"+":""}${tx.amount} 🪙</div>
+    </div>`;
   }).join("");
 }
 
-// ── Saved prompts ─────────────────────────────────────────
-async function initSavedPrompts(savedIds) {
-  const el = document.getElementById("saved-list");
-  if (!el) return;
-
+// ── Saved prompts ─────────────────────────────────────
+async function initSaved(savedIds) {
+  const el = document.getElementById("saved-grid");
   if (!savedIds.length) {
-    el.innerHTML = `<p style="color:var(--text2);font-size:14px;grid-column:1/-1;">No saved prompts yet. Browse prompts and tap Save to collect them here.</p>`;
+    el.innerHTML = `<p style="color:var(--text2);font-size:14px;grid-column:1/-1;">No saved prompts yet. Browse prompts and tap Save!</p>`;
     return;
   }
-  el.innerHTML = `<p style="color:var(--text2);font-size:14px;grid-column:1/-1;">Loading ${savedIds.length} saved prompts…</p>`;
+  el.innerHTML = `<p style="color:var(--text2);font-size:13px;grid-column:1/-1;">Loading ${savedIds.length} saved prompts…</p>`;
   try {
     const { getPromptById } = await import("./js/db.js");
-    const prompts = await Promise.all(savedIds.slice(0, 20).map(id => getPromptById(id)));
-    const valid   = prompts.filter(Boolean);
-    if (!valid.length) {
-      el.innerHTML = `<p style="color:var(--text2);font-size:14px;grid-column:1/-1;">Could not load saved prompts.</p>`;
-      return;
-    }
-    el.innerHTML = valid.map(p => `
-      <a href="./prompt.html?id=${p.id}" style="display:block;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:14px;text-decoration:none;color:var(--text);">
-        <div style="font-size:13px;font-weight:700;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.title || "Untitled"}</div>
-        <div style="font-size:12px;color:var(--text2);">${p.categoryName || ""} ${p.isPremium ? "· 👑 Premium" : ""}</div>
+    const results = await Promise.all(savedIds.slice(0,24).map(id=>getPromptById(id)));
+    const valid   = results.filter(Boolean);
+    if (!valid.length) { el.innerHTML=`<p style="color:var(--text2);font-size:14px;grid-column:1/-1;">Could not load saved prompts.</p>`; return; }
+    el.innerHTML = valid.map(p=>`
+      <a href="./prompt.html?id=${p.id}" style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;text-decoration:none;display:block;transition:border-color .15s;" onmouseover="this.style.borderColor='#6366f1'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="font-size:13px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px;">${p.title||"Untitled"}</div>
+        <div style="font-size:11px;color:var(--text2)">${p.categoryName||""} ${p.isPremium?"· 👑 Pro":""}</div>
       </a>`).join("");
-  } catch {
-    el.innerHTML = `<p style="color:#ef4444;font-size:14px;grid-column:1/-1;">Failed to load saved prompts.</p>`;
-  }
+  } catch { el.innerHTML=`<p style="color:#ef4444;font-size:13px;grid-column:1/-1;">Failed to load saved prompts.</p>`; }
 }
 
-// ── Submit prompt ─────────────────────────────────────────
+// ── Submit prompt ─────────────────────────────────────
 async function initSubmit(role) {
-  const coinCfg  = await getCoinConfig();
-  const rewardEl = document.getElementById("submit-reward");
-  if (rewardEl) rewardEl.textContent = coinCfg.promptSubmitReward;
+  const coinCfg = await getCoinConfig();
+  const rEl = document.getElementById("submit-reward-display");
+  if (rEl) rEl.textContent = coinCfg.promptSubmitReward;
 
-  const gateEl = document.getElementById("submit-gate");
-  const formEl = document.getElementById("submit-form");
-
-  if (role !== "pro") {
-    if (gateEl) gateEl.style.display = "";
-    if (formEl) formEl.style.display = "none";
+  if (role!=="pro") {
+    document.getElementById("submit-gate").style.display      = "";
+    document.getElementById("submit-form-wrap").style.display = "none";
     return;
   }
+  document.getElementById("submit-gate").style.display      = "none";
+  document.getElementById("submit-form-wrap").style.display = "";
 
-  if (gateEl) gateEl.style.display = "none";
-  if (formEl) formEl.style.display = "";
-
-  // Load categories into select
-  const { getCategories } = await import("./js/db.js");
   const cats = await getCategories();
-  const sel  = document.getElementById("sub-category");
-  if (sel) cats.forEach(c => {
-    const o = document.createElement("option");
-    o.value = c.id; o.textContent = c.name;
-    sel.appendChild(o);
-  });
+  const sel  = document.getElementById("sub-cat");
+  cats.forEach(c => { const o=document.createElement("option"); o.value=c.id; o.textContent=c.name; sel.appendChild(o); });
 
-  document.getElementById("btn-submit-prompt")?.addEventListener("click", async () => {
-    const title   = document.getElementById("sub-title")?.value.trim();
-    const catId   = document.getElementById("sub-category")?.value;
-    const tool    = document.getElementById("sub-tool")?.value.trim();
-    const content = document.getElementById("sub-content")?.value.trim();
-    const desc    = document.getElementById("sub-desc")?.value.trim();
-    const tags    = (document.getElementById("sub-tags")?.value || "").split(",").map(t => t.trim()).filter(Boolean);
-
-    if (!title || !catId || !tool || !content) {
-      toast("Please fill in all required fields.", "error");
-      return;
-    }
-
+  document.getElementById("btn-submit-prompt").addEventListener("click", async () => {
+    const title   = document.getElementById("sub-title").value.trim();
+    const catId   = document.getElementById("sub-cat").value;
+    const tool    = document.getElementById("sub-tool").value.trim();
+    const content = document.getElementById("sub-content").value.trim();
+    const desc    = document.getElementById("sub-desc").value.trim();
+    const tags    = (document.getElementById("sub-tags").value||"").split(",").map(t=>t.trim()).filter(Boolean);
+    const { toast } = await import("./js/ui.js");
+    if (!title||!catId||!tool||!content) { toast("Fill all required fields.","error"); return; }
     const btn = document.getElementById("btn-submit-prompt");
-    if (btn) { btn.disabled = true; btn.textContent = "Submitting…"; }
+    btn.disabled=true; btn.textContent="Submitting…";
     try {
-      await submitPrompt({
-        title, categoryId: catId, tool, content,
-        description: desc, tags,
-        submittedBy:   currentUser.uid,
-        submitterName: currentProfile?.displayName || currentUser.email
-      });
-      toast("✅ Prompt submitted for review! You'll earn coins when it's approved.", "success", 5000);
-      if (btn) { btn.style.background = "#10b981"; btn.textContent = "✓ Submitted!"; }
-    } catch (e) {
-      toast("Failed: " + e.message, "error");
-      if (btn) { btn.disabled = false; btn.textContent = "Submit for Review"; }
-    }
+      await submitPrompt({ title, categoryId:catId, tool, content, description:desc, tags,
+        submittedBy:_user.uid, submitterName:_profile?.displayName||_user.email });
+      toast("✅ Submitted! You'll earn coins when approved.","success",5000);
+      btn.style.background="#10b981"; btn.textContent="✓ Submitted!";
+    } catch(e) { toast("Failed: "+e.message,"error"); btn.disabled=false; btn.textContent="Submit for Review"; }
   });
 }
 </script>
-
 </body>
 </html>
